@@ -8,7 +8,6 @@ import BottomNav from "./layout/BottomNav";
 import Profile from "./pages/Profile";
 import LoadingScreen from "./components/LoadingScreen";
 import FinalizeAuth from "./components/FinalizeAuth";
-import Payments from "./components/Payments";
 
 function App() {
   const { activeTab, isUserAuthenticated } = useContext(AppContext);
@@ -29,7 +28,6 @@ function App() {
     Orders,
     Profile,
     FinalizeAuth,
-    Payments,
   };
 
   const ActivePage = TabComponents[activeTab] || Home;

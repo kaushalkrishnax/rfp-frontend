@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { ArrowRight, Settings, CreditCard, MessageSquare } from "lucide-react";
+import { ArrowRight, Settings, MessageSquare } from "lucide-react";
 import AppContext from "../context/AppContext";
 
 export default function Profile() {
@@ -9,7 +9,6 @@ export default function Profile() {
     return (
       <div
         className="flex items-center justify-between"
-        onClick={() => setActiveTab(title)}
       >
         <div className="flex items-center">
           <div
@@ -30,7 +29,6 @@ export default function Profile() {
       <div className="p-4 flex justify-between items-center">
         <div
           className="bg-gray-100 dark:bg-gray-800 h-10 w-10 rounded-full flex items-center justify-center"
-          onClick={() => setActiveTab("Home")}
         >
           <ArrowRight className="h-5 w-5 rotate-180" />
         </div>
@@ -51,12 +49,6 @@ export default function Profile() {
 
       {/* Menu Items */}
       <div className="px-6 space-y-4">
-        <MenuItem
-          icon={<CreditCard className="h-5 w-5 text-white" />}
-          color="bg-blue-500"
-          title="Payments"
-        />
-
         <MenuItem
           icon={<Settings className="h-5 w-5 text-white" />}
           color="bg-teal-500"
