@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+/* Base styles */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: white;
+  color: #1a1a1a;
+}
+
+/* Dark mode support */
+.dark body {
+  background-color: #0f172a; /* slate-900 */
+  color: #f1f5f9; /* slate-100 */
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+button,
+a,
+i,
+svg {
+  cursor: pointer;
+}
+
+
+/* Hide scrollbar for Chrome, Safari, and Edge */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for Firefox */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+@keyframes containerFadeIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes logoAnimation {
+  0% {
+    transform: translateY(0);
+    height: 300px; /* Larger initial size */
+    width: 300px;
+  }
+  100% {
+    transform: translateY(-120px);
+    height: 120px;
+    width: 120px;
+  }
+}
+
+@keyframes welcomeFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounce1 {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes bounce2 {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes bounce3 {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-container {
+  animation: containerFadeIn 500ms ease-out forwards;
+}
+
+.animate-logo {
+  animation: logoAnimation 700ms ease-in-out 800ms forwards;
+}
+
+.animate-welcome {
+  animation: welcomeFadeIn 700ms ease-in-out 1400ms forwards;
+}
+
+.animate-bounce1 {
+  animation: bounce1 1s ease-in-out infinite;
+}
+
+.animate-bounce2 {
+  animation: bounce2 1s ease-in-out infinite 0.2s;
+}
+
+.animate-bounce3 {
+  animation: bounce3 1s ease-in-out infinite 0.4s;
+}
+
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.5s ease-out forwards;
+}
+
+.animate-pulse {
+  animation: pulse 6s ease-in-out infinite;
+}
