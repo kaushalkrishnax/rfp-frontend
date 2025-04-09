@@ -3,7 +3,7 @@ import { ArrowRight, Settings, CreditCard, MessageSquare } from "lucide-react";
 import AppContext from "../context/AppContext";
 
 export default function Profile() {
-  const { setActiveTab } = useContext(AppContext);
+  const { setActiveTab, userInfo } = useContext(AppContext);
 
   function MenuItem({ icon, color, title }) {
     return (
@@ -45,7 +45,8 @@ export default function Profile() {
             className="h-full w-full object-cover"
           />
         </div>
-        <h1 className="text-2xl font-bold dark:text-white">Bablu Kumar</h1>
+        <h1 className="text-2xl font-bold dark:text-white">{userInfo?.full_name}</h1>
+        <p className="text-gray-600 dark:text-gray-400">{userInfo?.phone}</p>
       </div>
 
       {/* Menu Items */}
