@@ -30,7 +30,7 @@ export default function Profile() {
         <div
           className="bg-gray-100 dark:bg-gray-800 h-10 w-10 rounded-full flex items-center justify-center"
         >
-          <ArrowRight className="h-5 w-5 rotate-180" />
+          <ArrowRight className="h-5 w-5 rotate-180" onClick={() => setActiveTab("Home")} />
         </div>
       </div>
 
