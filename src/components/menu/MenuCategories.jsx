@@ -1,5 +1,13 @@
-import React from "react";
-import { Edit2, Trash2, ChevronRight, Plus, X } from "lucide-react";
+import { useState } from "react";
+import {
+  Edit2,
+  Trash2,
+  ChevronRight,
+  Plus,
+  X,
+  Loader2Icon,
+  Loader2,
+} from "lucide-react";
 
 const DEFAULT_IMAGE = "/api/placeholder/600/400";
 
@@ -7,6 +15,7 @@ const MenuCategories = ({
   menuData,
   isLoading,
   isAdmin,
+  isItemsLoading,
   expandedCategory,
   selectedItems,
   toggleCategory,
@@ -36,7 +45,9 @@ const MenuCategories = ({
         >
           <div
             className="relative cursor-pointer group"
-            onClick={() => toggleCategory(category.id)}
+            onClick={() => {
+              toggleCategory(category.id);
+            }}
           >
             <div className="h-32 relative">
               <img
@@ -97,7 +108,11 @@ const MenuCategories = ({
                     expandedCategory === category.id ? "rotate-90" : ""
                   }`}
                 >
-                  <ChevronRight size={16} />
+                  {isItemsLoading && expandedCategory === category.id ? (
+                    <Loader2 className="animate-spin" size={16} />
+                  ) : (
+                    <ChevronRight size={16} />
+                  )}
                 </div>
               </div>
             </div>

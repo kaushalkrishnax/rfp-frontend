@@ -349,6 +349,7 @@ const Menu = ({ isAdmin = true }) => {
           menuData={menuData}
           isLoading={isLoading || isItemsLoading}
           isAdmin={isAdmin}
+          isItemsLoading={isItemsLoading}
           expandedCategory={expandedCategory}
           selectedItems={selectedItems}
           toggleCategory={toggleCategory}
