@@ -225,6 +225,7 @@ const Menu = ({ isAdmin = true }) => {
       alert(`Failed to delete item: ${error.message || "Unknown error"}`);
     } finally {
       if (needsRefetch) {
+        const categoryId = menuData.find((cat) => cat.items?.some((i) => i.id === itemId))?.id;
         setMenuData((prev) =>
           prev.map((cat) =>
             cat.id === categoryId ? { ...cat, items: undefined } : cat

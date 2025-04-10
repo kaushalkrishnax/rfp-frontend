@@ -74,7 +74,11 @@ const MenuCategories = ({
                       title="Delete Category"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (window.confirm("Are you sure you want to delete this category?")) {
+                        if (
+                          window.confirm(
+                            "Are you sure you want to delete this category?"
+                          )
+                        ) {
                           handleDeleteCategory(category.id);
                         }
                       }}
@@ -163,7 +167,11 @@ const MenuCategories = ({
                           title="Delete Item"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (window.confirm("Are you sure you want to delete this item?")) {
+                            if (
+                              window.confirm(
+                                "Are you sure you want to delete this item?"
+                              )
+                            ) {
                               handleDeleteItem(item.id);
                             }
                           }}
