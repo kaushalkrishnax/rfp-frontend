@@ -10,12 +10,20 @@ const MenuItemModal = ({
   isNewItem,
   isLoading,
 }) => {
-  const [name, setName] = useState("");
-  const [variants, setVariants] = useState([
-    { name: "Half", price: "" },
-    { name: "Full", price: "" },
-    { name: "Custom", price: "" },
-  ]);
+  const [name, setName] = useState(item?.name);
+  const [variants, setVariants] = useState(() => {
+    const variantMap = {};
+
+    item?.variants?.forEach((v) => {
+      variantMap[v.name] = v.price;
+    });
+
+    return [
+      { name: "Half", price: variantMap["Half"] },
+      { name: "Full", price: variantMap["Full"] },
+      { name: "Custom", price: variantMap["Custom"] },
+    ];
+  });
 
   const handleVariantChange = (index, field, value) => {
     setVariants((prev) =>
@@ -49,7 +57,7 @@ const MenuItemModal = ({
       { name: "Full", price: "" },
       { name: "Custom", price: "" },
     ]);
-
+    onClose();
     onSave(categoryId, isNewItem ? null : item.id, name, cleanedVariants);
   };
 
@@ -110,7 +118,7 @@ const MenuItemModal = ({
                 ))}
               </div>
               {variants[2] && (
-                <div className="flex items-center space-x-2 mb-3">
+                <div className="flex items-center space-x-2">
                   <div className="flex flex-col items-center border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                     <span className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 w-full">
                       {variants[2].name}:

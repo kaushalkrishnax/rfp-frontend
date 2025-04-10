@@ -135,7 +135,6 @@ const Menu = ({ isAdmin = true }) => {
 
   const openAddItemModal = (categoryId) => {
     setCurrentCategory({ id: categoryId });
-    setCurrentItem(null);
     setIsNewItem(true);
     setItemModalOpen(true);
   };
@@ -145,6 +144,8 @@ const Menu = ({ isAdmin = true }) => {
     const item = category?.items?.find((i) => i.id === itemId);
     if (item) {
       setCurrentCategory({ id: categoryId });
+      console.log(item);
+
       setCurrentItem(item);
       setIsNewItem(false);
       setItemModalOpen(true);
@@ -161,7 +162,6 @@ const Menu = ({ isAdmin = true }) => {
   };
 
   const openEditCategoryModal = (categoryId) => {
-    setCurrentCategory(null);
     const category = menuData.find((cat) => cat.id === categoryId);
     if (category) {
       setCurrentCategory(category);
