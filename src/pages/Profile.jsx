@@ -32,7 +32,7 @@ export default function Profile() {
         >
           <ArrowRight className="h-5 w-5 rotate-180" onClick={() => setActiveTab("Home")} />
         </div>
-      </div>
+      </div> 
 
       {/* Profile Section */}
       <div className="flex flex-col items-center mt-4 mb-8">

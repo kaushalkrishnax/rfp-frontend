@@ -11,6 +11,8 @@ const FinalizeAuth = () => {
   const [isSignup, setIsSignup] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const RFP_API_URL = import.meta.env.VITE_RFP_API_URL;
+
   useEffect(() => {
     const img = new Image();
     img.src = rfpLogo;
@@ -51,7 +53,7 @@ const FinalizeAuth = () => {
 
     try {
       const response = await fetch(
-        `https://rfp-backend-73t3.onrender.com/api/v1/auth/otp?phone=${phoneNumber}`
+        `${RFP_API_URL}/auth/otp?phone=${phoneNumber}`
       );
 
       const { method } = await response.json().then((data) => data.data);
@@ -81,7 +83,7 @@ const FinalizeAuth = () => {
 
     try {
       const response = await fetch(
-        `https://rfp-backend-73t3.onrender.com/api/v1/auth/finalize`,
+        `${RFP_API_URL}/auth/finalize`,
         {
           method: "POST",
           headers: {

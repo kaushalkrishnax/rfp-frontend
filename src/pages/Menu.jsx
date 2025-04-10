@@ -1,152 +1,346 @@
-import React from "react";
+import React, { useState } from "react";
+import { Edit2, BaggageClaim, Plus, X, ChevronRight } from "lucide-react";
+import MenuItemModal from "../components/menu/MenuItemModal";
+import CategoryModal from "../components/menu/CategoryModal";
+import CartModal from "../components/menu/CartModal";
 
-export default function Menu() {
+const Menu = ({ isAdmin = true }) => {
+  const [menuData, setMenuData] = useState([]);
+  const [selectedItems, setSelectedItems] = useState({});
+  const [showCart, setShowCart] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState(null);
+
+  const [itemModalOpen, setItemModalOpen] = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [currentItem, setCurrentItem] = useState(null);
+  const [currentCategory, setCurrentCategory] = useState(null);
+  const [isNewItem, setIsNewItem] = useState(false);
+  const [isNewCategory, setIsNewCategory] = useState(false);
+
+  const calculateTotal = () => {
+    let total = 0;
+    Object.keys(selectedItems).forEach((itemId) => {
+      const category = menuData.find((cat) =>
+        cat.items.some((item) => item.id === itemId)
+      );
+
+      if (category) {
+        const item = category.items.find((item) => item.id === itemId);
+        if (item) {
+          total += parseInt(item.price);
+        }
+      }
+    });
+    return total;
+  };
+
+  const toggleCategory = (categoryId) => {
+    setExpandedCategory(expandedCategory === categoryId ? null : categoryId);
+  };
+
+  const handleAddItem = (categoryId) => {
+    const category = menuData.find((cat) => cat.id === categoryId);
+    setCurrentCategory(category);
+    setCurrentItem(null);
+    setIsNewItem(true);
+    setItemModalOpen(true);
+  };
+
+  const handleEditItem = (categoryId, itemId) => {
+    const category = menuData.find((cat) => cat.id === categoryId);
+    const item = category.items.find((item) => item.id === itemId);
+    setCurrentCategory(category);
+    setCurrentItem(item);
+    setIsNewItem(false);
+    setItemModalOpen(true);
+  };
+
+  const handleSaveItem = (categoryId, itemId, newName, newPrice) => {
+    if (isNewItem) {
+      setMenuData(
+        menuData.map((category) =>
+          category.id === categoryId
+            ? {
+                ...category,
+                items: [
+                  ...category.items,
+                  { id: itemId, name: newName, price: newPrice },
+                ],
+              }
+            : category
+        )
+      );
+    } else {
+      setMenuData(
+        menuData.map((category) =>
+          category.id === categoryId
+            ? {
+                ...category,
+                items: category.items.map((item) =>
+                  item.id === itemId
+                    ? { ...item, name: newName, price: newPrice }
+                    : item
+                ),
+              }
+            : category
+        )
+      );
+    }
+  };
+
+  const handleDeleteItem = (categoryId, itemId) => {
+    if (window.confirm("Are you sure you want to delete this item?")) {
+      setMenuData(
+        menuData.map((category) =>
+          category.id === categoryId
+            ? {
+                ...category,
+                items: category.items.filter((item) => item.id !== itemId),
+              }
+            : category
+        )
+      );
+    }
+  };
+
+  const handleAddCategory = () => {
+    setCurrentCategory(null);
+    setIsNewCategory(true);
+    setCategoryModalOpen(true);
+  };
+
+  const handleEditCategory = (categoryId) => {
+    const category = menuData.find((cat) => cat.id === categoryId);
+    setCurrentCategory(category);
+    setIsNewCategory(false);
+    setCategoryModalOpen(true);
+  };
+
+  const handleSaveCategory = (categoryId, newName) => {
+    if (isNewCategory) {
+      const newCategory = {
+        id: `cat-${Date.now()}`,
+        category: newName,
+        image: "/api/placeholder/600/400",
+        items: [],
+      };
+      setMenuData([...menuData, newCategory]);
+    } else {
+      setMenuData(
+        menuData.map((category) =>
+          category.id === categoryId
+            ? { ...category, category: newName }
+            : category
+        )
+      );
+    }
+  };
+
+  const handleDeleteCategory = (categoryId) => {
+    setMenuData(menuData.filter((category) => category.id !== categoryId));
+  };
+
+  const toggleSelectItem = (itemId) => {
+    setSelectedItems((prev) => {
+      const newSelection = { ...prev };
+      if (newSelection[itemId]) {
+        delete newSelection[itemId];
+      } else {
+        newSelection[itemId] = true;
+      }
+      return newSelection;
+    });
+  };
+
+  const handleProceedOrder = () => {
+    const selectedCount = Object.keys(selectedItems).length;
+    if (selectedCount === 0) {
+      alert("Please select at least one item");
+      return;
+    }
+
+    alert(`Order placed with ${selectedCount} items for ₹${calculateTotal()}`);
+    setSelectedItems({});
+    setShowCart(false);
+  };
+
   return (
-    <div className="bg-black text-white min-h-screen p-4">
-      <div className="max-w-5xl mx-auto">
-        {/* Decorative Header */}
-        <div className="flex justify-center mb-6">
-          <div className="w-1/2 h-2 bg-yellow-500 rounded-full"></div>
-        </div>
-
-        {/* Menu Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Left Column */}
-          <div className="space-y-10">
-            <div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg">
-              <div className="relative h-40">
-                <img
-                  src="https://media.istockphoto.com/id/618764348/photo/famous-asian-flat-bread-known-as-parathas.jpg?s=612x612&w=0&k=20&c=yrz3Gn1RIHw8ohxG0uGNAU1H8wa2dB6xRli_DD3PJ6o="
-                  alt="पराठे"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-black to-transparent opacity-60"></div>
-                <div className="absolute bottom-0 left-0 w-full">
-                  <div className="bg-yellow-500 text-black font-bold px-6 py-2 inline-block ml-4 mb-4 rounded-tr-lg rounded-bl-lg">
-                    पराठे
-                  </div>
-                </div>
-              </div>
-              <div className="p-4 space-y-2">
-                <MenuItem name="आलू पराठा" price="40" />
-                <MenuItem name="पनीर पराठा" price="60" />
-                <MenuItem name="गोभी पराठा" price="40" />
-                <MenuItem name="प्याज पराठा" price="40" />
-                <MenuItem name="मिक्स पराठा" price="50" />
-                <MenuItem name="मेथी पराठा" price="40" />
-                <MenuItem name="अचारी पराठा" price="40" />
-              </div>
-            </div>
-
-            {/* Puri Section */}
-            <div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg">
-              <div className="relative h-40">
-                <img
-                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRrgEo7ID_gcMgSDS2ELpo_KzCCW47-tnRzrA&s"
-                  alt="पूरी"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-black to-transparent opacity-60"></div>
-                <div className="absolute bottom-0 left-0 w-full">
-                  <div className="bg-yellow-500 text-black font-bold px-6 py-2 inline-block ml-4 mb-4 rounded-tr-lg rounded-bl-lg">
-                    पूरी
-                  </div>
-                </div>
-              </div>
-              <div className="p-4 space-y-2">
-                <MenuItem name="पूरी सब्जी (2 पूरी)" price="40" />
-                <MenuItem name="पूरी सब्जी (4 पूरी)" price="70" />
-              </div>
-            </div>
+    <div className="bg-gray-950 text-white min-h-screen pb-20">
+      <div className="sticky top-0 z-40 bg-gray-900 shadow-lg">
+        <div className="max-w-3xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+            <h1 className="text-xl font-bold">सुन्दर भोजन</h1>
           </div>
 
-          {/* Right Column */}
-          <div className="space-y-10">
-            {/* Thali Section */}
-            <div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg">
-              <div className="relative h-40">
-                <img
-                  src="https://media.istockphoto.com/id/1158578874/photo/indian-hindu-veg-thali-food-platter-selective-focus.jpg?s=612x612&w=0&k=20&c=ZHAsJ9sJJoeAmwD3iU1Oo2YSKn_BG6JoE7zuG1frxwg="
-                  alt="थाली"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-black to-transparent opacity-60"></div>
-                <div className="absolute bottom-0 left-0 w-full">
-                  <div className="bg-yellow-500 text-black font-bold px-6 py-2 inline-block ml-4 mb-4 rounded-tr-lg rounded-bl-lg">
-                    थाली
-                  </div>
-                </div>
-              </div>
-              <div className="p-4 space-y-2">
-                <MenuItem name="साधारण थाली" price="70" />
-                <MenuItem name="स्पेशल थाली" price="90" />
-                <MenuItem name="राजस्थानी थाली" price="100" />
-                <MenuItem name="दाल राइस" price="60" />
-                <MenuItem name="चावल सब्जी" price="60/70" />
-                <MenuItem name="मिक्स राइस" price="60/110" />
-              </div>
-            </div>
+          {!isAdmin && (
+            <button
+              onClick={() => setShowCart(!showCart)}
+              className="bg-yellow-500 text-black px-4 py-2 rounded-full flex items-center shadow transform transition hover:scale-105"
+            >
+              <BaggageClaim size={18} />
+              <span className="ml-2 font-medium">
+                {Object.keys(selectedItems).length}
+              </span>
+            </button>
+          )}
 
-            {/* Roti Section */}
-            <div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg">
-              <div className="relative h-40">
-                <img
-                  src="https://t3.ftcdn.net/jpg/04/02/96/42/360_F_402964244_CaWXa99d6DZ5b1zRjlsdX5gXtpcZqGWs.jpg"
-                  alt="रोटी"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-black to-transparent opacity-60"></div>
-                <div className="absolute bottom-0 left-0 w-full">
-                  <div className="bg-yellow-500 text-black font-bold px-6 py-2 inline-block ml-4 mb-4 rounded-tr-lg rounded-bl-lg">
-                    रोटी
-                  </div>
-                </div>
-              </div>
-              <div className="p-4 space-y-2">
-                <MenuItem name="तंदूरी रोटी" price="10" />
-                <MenuItem name="बटर रोटी" price="15" />
-                <MenuItem name="मिस्सी रोटी" price="20" />
-              </div>
-            </div>
+          {isAdmin && (
+            <button
+              onClick={handleAddCategory}
+              className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-black px-4 py-2 rounded-full flex items-center shadow transform transition hover:scale-105"
+            >
+              <Plus size={18} />
+              <span className="ml-2 font-medium">Add Category</span>
+            </button>
+          )}
+        </div>
+      </div>
 
-            {/* Cold Drinks Section */}
-            <div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg">
-              <div className="relative h-40">
-                <img
-                  src="https://i.pinimg.com/736x/45/7e/e1/457ee121f4f4a338a78fb734fd03fa76.jpg"
-                  alt="शीतल पेय"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-black to-transparent opacity-60"></div>
-                <div className="absolute bottom-0 left-0 w-full">
-                  <div className="bg-yellow-500 text-black font-bold px-6 py-2 inline-block ml-4 mb-4 rounded-tr-lg rounded-bl-lg">
-                    शीतल पेय
+      <div className="max-w-3xl mx-auto px-4 py-6">
+        {!isAdmin && showCart && <CartModal
+          isOpen={showCart}
+          onClose={() => setShowCart(false)}
+          menuData={menuData}
+          selectedItems={selectedItems}
+          calculateTotal={calculateTotal}
+          handleProceedOrder={handleProceedOrder}
+        />}
+
+        <div className="space-y-4">
+          {menuData.map((category) => (
+            <div
+              key={category.id}
+              className="bg-gray-900 rounded-2xl overflow-hidden shadow transition"
+            >
+              <div
+                className="relative cursor-pointer"
+                onClick={() => toggleCategory(category.id)}
+              >
+                <div className="h-32 relative">
+                  <img
+                    src={category.image}
+                    alt={category.category}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-60"></div>
+                </div>
+
+                <div className="absolute inset-0 flex items-center justify-between p-4">
+                  <div className="bg-black bg-opacity-70 px-4 py-2 rounded-xl">
+                    <h2 className="text-xl font-bold">{category.category}</h2>
+                    <p className="text-gray-400 text-sm">
+                      {category.items.length} items
+                    </p>
+                  </div>
+
+                  <div className="flex items-center">
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditCategory(category.id);
+                        }}
+                        className="bg-gray-800 bg-opacity-80 p-2 rounded-full mr-2 hover:bg-yellow-500 hover:text-black transition"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                    )}
+                    <div
+                      className={`bg-gray-800 bg-opacity-80 p-2 rounded-full transition transform ${
+                        expandedCategory === category.id ? "rotate-90" : ""
+                      }`}
+                    >
+                      <ChevronRight size={16} />
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="p-4 space-y-2">
-                <MenuItem name="पानी बोतल" price="20" />
-                <MenuItem name="कोल्ड ड्रिंक" price="20" />
-                <MenuItem name="लस्सी" price="40" />
-              </div>
+
+              {expandedCategory === category.id && (
+                <div className="p-4 space-y-2">
+                  {category.items.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`flex justify-between items-center p-3 rounded-xl transition ${
+                        isAdmin
+                          ? "hover:bg-gray-800"
+                          : selectedItems[item.id]
+                          ? "bg-gray-800"
+                          : "hover:bg-gray-800 cursor-pointer"
+                      }`}
+                      onClick={() => !isAdmin && toggleSelectItem(item.id)}
+                    >
+                      <div className="flex items-center">
+                        {!isAdmin && (
+                          <div
+                            className={`w-5 h-5 rounded-full border border-yellow-500 mr-3 flex items-center justify-center transition ${
+                              selectedItems[item.id] ? "bg-yellow-500" : ""
+                            }`}
+                          >
+                            {selectedItems[item.id] && (
+                              <div className="w-2 h-2 bg-black rounded-full"></div>
+                            )}
+                          </div>
+                        )}
+                        <span className="text-base font-medium">
+                          {item.name}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center">
+                        <span className="font-bold text-yellow-500 mr-3">
+                          ₹{item.price}
+                        </span>
+                        {isAdmin && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditItem(category.id, item.id);
+                            }}
+                            className="text-gray-400 hover:text-white p-1 hover:bg-gray-700 rounded-full transition"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleAddItem(category.id)}
+                      className="flex items-center justify-center w-full p-3 text-yellow-500 hover:bg-gray-800 rounded-xl mt-3 transition"
+                    >
+                      <Plus size={18} className="mr-2" /> Add New Item
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
+          ))}
         </div>
 
-        {/* Decorative Footer */}
-        <div className="flex justify-center mt-12 mb-6">
-          <div className="w-1/2 h-2 bg-yellow-500 rounded-full"></div>
-        </div>
+        <MenuItemModal
+          isOpen={itemModalOpen}
+          onClose={() => setItemModalOpen(false)}
+          item={currentItem}
+          categoryId={currentCategory?.id}
+          onSave={handleSaveItem}
+          isNewItem={isNewItem}
+        />
+
+        <CategoryModal
+          isOpen={categoryModalOpen}
+          onClose={() => setCategoryModalOpen(false)}
+          category={currentCategory}
+          onSave={handleSaveCategory}
+          onDelete={handleDeleteCategory}
+          isNewCategory={isNewCategory}
+        />
       </div>
     </div>
   );
-}
+};
 
-function MenuItem({ name, price }) {
-  return (
-    <div className="flex justify-between border-b border-gray-800 py-2 last:border-0">
-      <span className="text-lg">{name}</span>
-      <span className="font-semibold text-yellow-500">₹{price}</span>
-    </div>
-  );
-}
+export default Menu;
