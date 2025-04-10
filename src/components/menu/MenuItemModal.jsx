@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
 const MenuItemModal = ({
@@ -10,20 +10,27 @@ const MenuItemModal = ({
   isNewItem,
   isLoading,
 }) => {
-  const [name, setName] = useState(item?.name);
-  const [variants, setVariants] = useState(() => {
-    const variantMap = {};
+  const [name, setName] = useState("");
+  const [variants, setVariants] = useState([
+    { name: "Half", price: "" },
+    { name: "Full", price: "" },
+    { name: "Custom", price: "" },
+  ]);
 
+  useEffect(() => {
+    setName(item?.name ?? "");
+
+    const variantMap = {};
     item?.variants?.forEach((v) => {
       variantMap[v.name] = v.price;
     });
 
-    return [
-      { name: "Half", price: variantMap["Half"] },
-      { name: "Full", price: variantMap["Full"] },
-      { name: "Custom", price: variantMap["Custom"] },
-    ];
-  });
+    setVariants([
+      { name: "Half", price: variantMap["Half"] ?? "" },
+      { name: "Full", price: variantMap["Full"] ?? "" },
+      { name: "Custom", price: variantMap["Custom"] ?? "" },
+    ]);
+  }, [item]);
 
   const handleVariantChange = (index, field, value) => {
     setVariants((prev) =>
@@ -51,6 +58,9 @@ const MenuItemModal = ({
       return;
     }
 
+    onSave(categoryId, isNewItem ? null : item.id, name, cleanedVariants);
+
+    // Clear states after saving
     setName("");
     setVariants([
       { name: "Half", price: "" },
@@ -58,7 +68,6 @@ const MenuItemModal = ({
       { name: "Custom", price: "" },
     ]);
     onClose();
-    onSave(categoryId, isNewItem ? null : item.id, name, cleanedVariants);
   };
 
   if (!isOpen) return null;
@@ -100,14 +109,17 @@ const MenuItemModal = ({
             <div className="flex space-x-4 items-start">
               <div className="flex flex-col space-x-2 mb-3 gap-2">
                 {variants.slice(0, 2).map((variant, index) => (
-                  <div className="flex items-center border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-40">
+                  <div
+                    className="flex items-center border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-40"
+                    key={variant.name}
+                  >
                     <span className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 w-ful">
                       {variant.name}:
                     </span>
                     <input
                       type="text"
                       placeholder="₹ Price"
-                      value={variant.price}
+                      value={variant.price ?? ""}
                       inputMode="decimal"
                       onChange={(e) =>
                         handleVariantChange(index, "price", e.target.value)
@@ -117,8 +129,12 @@ const MenuItemModal = ({
                   </div>
                 ))}
               </div>
+
               {variants[2] && (
-                <div className="flex items-center space-x-2">
+                <div
+                  className="flex items-center space-x-2"
+                  key={variants[2].name}
+                >
                   <div className="flex flex-col items-center border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                     <span className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 w-full">
                       {variants[2].name}:
@@ -126,7 +142,7 @@ const MenuItemModal = ({
                     <input
                       type="text"
                       placeholder="₹ Price"
-                      value={variants[2].price}
+                      value={variants[2].price ?? ""}
                       inputMode="decimal"
                       onChange={(e) =>
                         handleVariantChange(2, "price", e.target.value)
