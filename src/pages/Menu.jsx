@@ -161,6 +161,7 @@ const Menu = ({ isAdmin = true }) => {
   };
 
   const openEditCategoryModal = (categoryId) => {
+    setCurrentCategory(null);
     const category = menuData.find((cat) => cat.id === categoryId);
     if (category) {
       setCurrentCategory(category);
@@ -211,7 +212,6 @@ const Menu = ({ isAdmin = true }) => {
       } else {
         setIsLoading(false);
       }
-      setCurrentItem(null);
     }
   };
 
@@ -256,8 +256,6 @@ const Menu = ({ isAdmin = true }) => {
       console.error("Error saving category:", error);
       alert(`Failed to save category: ${error.message || "Unknown error"}`);
       setIsLoading(false);
-    } finally {
-      setCurrentCategory(null);
     }
   };
 

@@ -25,6 +25,8 @@ const CategoryModal = ({
       alert("Category name cannot be empty");
       return;
     }
+    setName("");
+    setImageUrl(DEFAULT_IMAGE);
     onClose();
     onSave(category?.id, name, imageUrl);
   };

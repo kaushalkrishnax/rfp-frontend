@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { X } from "lucide-react";
 
 const MenuItemModal = ({
@@ -42,6 +42,13 @@ const MenuItemModal = ({
       alert("Please enter item name and at least one valid variant.");
       return;
     }
+
+    setName("");
+    setVariants([
+      { name: "Half", price: "" },
+      { name: "Full", price: "" },
+      { name: "Custom", price: "" },
+    ]);
 
     onSave(categoryId, isNewItem ? null : item.id, name, cleanedVariants);
   };
