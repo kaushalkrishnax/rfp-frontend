@@ -12,27 +12,9 @@ const MenuItemModal = ({
 }) => {
   const [name, setName] = useState("");
   const [variants, setVariants] = useState([
-    { name: "Full", price: "" },
     { name: "Half", price: "" },
+    { name: "Full", price: "" },
   ]);
-
-  useEffect(() => {
-    if (isOpen) {
-      setName(item?.name || "");
-      setVariants(
-        item?.variants || [
-          { name: "Full", price: "" },
-          { name: "Half", price: "" },
-        ]
-      );
-    } else {
-      setName("");
-      setVariants([
-        { name: "Full", price: "" },
-        { name: "Half", price: "" },
-      ]);
-    }
-  }, [item, isOpen]);
 
   const handleVariantChange = (index, field, value) => {
     setVariants((prev) =>

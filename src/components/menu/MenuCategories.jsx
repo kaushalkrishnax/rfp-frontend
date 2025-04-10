@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React from "react";
 import { Edit2, Trash2, ChevronRight, Plus, X } from "lucide-react";
 
 const DEFAULT_IMAGE = "/api/placeholder/600/400";
