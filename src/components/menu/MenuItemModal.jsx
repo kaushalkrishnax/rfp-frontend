@@ -14,6 +14,7 @@ const MenuItemModal = ({
   const [variants, setVariants] = useState([
     { name: "Half", price: "" },
     { name: "Full", price: "" },
+    { name: "Custom", price: "" },
   ]);
 
   const handleVariantChange = (index, field, value) => {
@@ -81,25 +82,46 @@ const MenuItemModal = ({
             <label className="block text-sm text-gray-700 dark:text-gray-300 mb-2">
               Prices
             </label>
-            {variants.map((variant, index) => (
-              <div key={index} className="flex items-center space-x-2 mb-3">
-                <div className="flex items-center border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full">
-                  <span className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700">
-                    {variant.name}:
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="₹ Price"
-                    value={variant.price}
-                    inputMode="decimal"
-                    onChange={(e) =>
-                      handleVariantChange(index, "price", e.target.value)
-                    }
-                    className="px-3 py-2 text-sm bg-transparent text-black dark:text-white focus:outline-none w-24"
-                  />
-                </div>
+            <div className="flex space-x-4 items-start">
+              <div className="flex flex-col space-x-2 mb-3 gap-2">
+                {variants.slice(0, 2).map((variant, index) => (
+                  <div className="flex items-center border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-40">
+                    <span className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 w-ful">
+                      {variant.name}:
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="₹ Price"
+                      value={variant.price}
+                      inputMode="decimal"
+                      onChange={(e) =>
+                        handleVariantChange(index, "price", e.target.value)
+                      }
+                      className="px-3 py-2 text-sm bg-transparent text-black dark:text-white focus:outline-none w-24"
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
+              {variants[2] && (
+                <div className="flex items-center space-x-2 mb-3">
+                  <div className="flex flex-col items-center border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700">
+                    <span className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 w-full">
+                      {variants[2].name}:
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="₹ Price"
+                      value={variants[2].price}
+                      inputMode="decimal"
+                      onChange={(e) =>
+                        handleVariantChange(2, "price", e.target.value)
+                      }
+                      className="px-3 py-2 text-sm bg-transparent text-black dark:text-white focus:outline-none w-24"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
