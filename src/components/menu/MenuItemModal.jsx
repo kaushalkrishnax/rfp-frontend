@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Plus, Trash2 } from "lucide-react";
+import { X } from "lucide-react";
 
 const MenuItemModal = ({
   isOpen,
@@ -11,15 +11,26 @@ const MenuItemModal = ({
   isLoading,
 }) => {
   const [name, setName] = useState("");
-  const [variants, setVariants] = useState([{ name: "", price: "" }]);
+  const [variants, setVariants] = useState([
+    { name: "Full", price: "" },
+    { name: "Half", price: "" },
+  ]);
 
   useEffect(() => {
     if (isOpen) {
       setName(item?.name || "");
-      setVariants(item?.variants || [{ name: "", price: "" }]);
+      setVariants(
+        item?.variants || [
+          { name: "Full", price: "" },
+          { name: "Half", price: "" },
+        ]
+      );
     } else {
       setName("");
-      setVariants([{ name: "", price: "" }]);
+      setVariants([
+        { name: "Full", price: "" },
+        { name: "Half", price: "" },
+      ]);
     }
   }, [item, isOpen]);
 
@@ -34,16 +45,6 @@ const MenuItemModal = ({
           : v
       )
     );
-  };
-
-  const handleAddVariant = () => {
-    setVariants([...variants, { name: "", price: "" }]);
-  };
-
-  const handleRemoveVariant = (index) => {
-    if (variants.length > 1) {
-      setVariants(variants.filter((_, i) => i !== index));
-    }
   };
 
   const handleSaveClick = () => {
@@ -96,44 +97,27 @@ const MenuItemModal = ({
 
           <div>
             <label className="block text-sm text-gray-700 dark:text-gray-300 mb-2">
-              Variants & Prices
+              Prices
             </label>
             {variants.map((variant, index) => (
               <div key={index} className="flex items-center space-x-2 mb-3">
-                <input
-                  type="text"
-                  placeholder="Variant (e.g. Half)"
-                  value={variant.name}
-                  onChange={(e) =>
-                    handleVariantChange(index, "name", e.target.value)
-                  }
-                  className="flex-1 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-black dark:text-white border border-gray-300 dark:border-gray-700"
-                />
-                <input
-                  type="text"
-                  placeholder="Price"
-                  value={variant.price}
-                  inputMode="decimal"
-                  onChange={(e) =>
-                    handleVariantChange(index, "price", e.target.value)
-                  }
-                  className="w-24 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-black dark:text-white border border-gray-300 dark:border-gray-700"
-                />
-                <button
-                  onClick={() => handleRemoveVariant(index)}
-                  className="text-red-500 hover:text-red-600"
-                >
-                  <Trash2 size={18} />
-                </button>
+                <div className="flex items-center border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full">
+                  <span className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700">
+                    {variant.name}:
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="₹ Price"
+                    value={variant.price}
+                    inputMode="decimal"
+                    onChange={(e) =>
+                      handleVariantChange(index, "price", e.target.value)
+                    }
+                    className="px-3 py-2 text-sm bg-transparent text-black dark:text-white focus:outline-none w-24"
+                  />
+                </div>
               </div>
             ))}
-            <button
-              onClick={handleAddVariant}
-              className="flex items-center text-sm mt-2 text-yellow-500 hover:underline"
-            >
-              <Plus size={16} className="mr-1" />
-              Add Variant
-            </button>
           </div>
         </div>
 
@@ -149,7 +133,7 @@ const MenuItemModal = ({
             disabled={isLoading}
             className="flex-1 bg-yellow-500 hover:bg-yellow-400 text-black font-medium py-3 px-4 rounded-xl transition transform hover:scale-105"
           >
-            Save Changes
+            Save
           </button>
         </div>
       </div>

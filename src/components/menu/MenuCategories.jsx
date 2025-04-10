@@ -74,7 +74,9 @@ const MenuCategories = ({
                       title="Delete Category"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteCategory(category.id);
+                        if (window.confirm("Are you sure you want to delete this category?")) {
+                          handleDeleteCategory(category.id);
+                        }
                       }}
                       className="bg-red-700 bg-opacity-80 p-2 rounded-full hover:bg-red-500 text-white transition"
                       disabled={isLoading}
@@ -161,7 +163,9 @@ const MenuCategories = ({
                           title="Delete Item"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteItem(category.id, item.id);
+                            if (window.confirm("Are you sure you want to delete this item?")) {
+                              handleDeleteItem(item.id);
+                            }
                           }}
                           className="text-red-500 hover:text-red-400 p-1 hover:bg-gray-700 rounded-full transition"
                           disabled={isLoading}
@@ -177,7 +181,7 @@ const MenuCategories = ({
               {isAdmin && (
                 <button
                   onClick={() => openAddItemModal(category.id)}
-                  className="flex items-center justify-center w-full p-3 text-yellow-500 hover:bg-gray-800 rounded-xl mt-3 transition"
+                  className="flex items-center justify-center w-full p-3 text-yellow-500 bg-gray-800 rounded-xl mt-3 transition"
                   disabled={isLoading}
                 >
                   <Plus size={18} className="mr-2" /> Add New Item

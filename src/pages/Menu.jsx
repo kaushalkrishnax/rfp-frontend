@@ -214,8 +214,7 @@ const Menu = ({ isAdmin = true }) => {
     }
   };
 
-  const handleDeleteItem = async (itemId, categoryId) => {
-    if (!window.confirm("Are you sure you want to delete this item?")) return;
+  const handleDeleteItem = async (itemId) => {
     setIsLoading(true);
     let needsRefetch = true;
     try {
@@ -225,7 +224,7 @@ const Menu = ({ isAdmin = true }) => {
       console.error("Error deleting item:", error);
       alert(`Failed to delete item: ${error.message || "Unknown error"}`);
     } finally {
-      if (needsRefetch && categoryId) {
+      if (needsRefetch) {
         setMenuData((prev) =>
           prev.map((cat) =>
             cat.id === categoryId ? { ...cat, items: undefined } : cat
@@ -280,7 +279,7 @@ const Menu = ({ isAdmin = true }) => {
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
             <h1 className="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-yellow-500">
-              ROYAL FOOD PLAZA MENU
+              RFP MENU
             </h1>
           </div>
 
