@@ -193,7 +193,6 @@ const Menu = ({ isAdmin = true }) => {
         await updateItemAPI(rfpFetch, itemId, name, variants);
       }
       closeItemModal();
-      setCurrentItem(null);
     } catch (error) {
       needsRefetch = false;
       console.error("Error saving item:", error);
@@ -212,6 +211,7 @@ const Menu = ({ isAdmin = true }) => {
       } else {
         setIsLoading(false);
       }
+      setCurrentItem(null);
     }
   };
 
@@ -251,12 +251,13 @@ const Menu = ({ isAdmin = true }) => {
         await updateCategoryAPI(rfpFetch, categoryId, name, image);
       }
       closeCategoryModal();
-      setCurrentCategory(null);
       await fetchInitialMenu();
     } catch (error) {
       console.error("Error saving category:", error);
       alert(`Failed to save category: ${error.message || "Unknown error"}`);
       setIsLoading(false);
+    } finally {
+      setCurrentCategory(null);
     }
   };
 
