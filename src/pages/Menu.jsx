@@ -1,11 +1,28 @@
-import React, { useState } from "react";
-import { Edit2, BaggageClaim, Plus, X, ChevronRight } from "lucide-react";
+import React, { useState, useContext, useEffect, useCallback } from "react";
+import { BaggageClaim, Plus, Loader2 } from "lucide-react";
 import MenuItemModal from "../components/menu/MenuItemModal";
 import CategoryModal from "../components/menu/CategoryModal";
 import CartModal from "../components/menu/CartModal";
+import MenuCategories from "../components/menu/MenuCategories";
+import AppContext from "../context/AppContext";
+import {
+  getCategoriesAPI,
+  getItemsByCategoryAPI,
+  addCategoryAPI,
+  updateCategoryAPI,
+  removeCategoryAPI,
+  addItemAPI,
+  updateItemAPI,
+  removeItemAPI,
+} from "../services/menuApi.js";
 
 const Menu = ({ isAdmin = true }) => {
+  const { rfpFetch } = useContext(AppContext);
+
   const [menuData, setMenuData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isItemsLoading, setIsItemsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [selectedItems, setSelectedItems] = useState({});
   const [showCart, setShowCart] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState(null);
@@ -17,166 +34,261 @@ const Menu = ({ isAdmin = true }) => {
   const [isNewItem, setIsNewItem] = useState(false);
   const [isNewCategory, setIsNewCategory] = useState(false);
 
+  const fetchInitialMenu = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await getCategoriesAPI(rfpFetch);
+      const categories = response?.data?.data || response?.data || [];
+      if (!Array.isArray(categories)) {
+        throw new Error("Invalid category data format received.");
+      }
+      setMenuData(categories.map((cat) => ({ ...cat, items: undefined })));
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+      setError(err.message || "Failed to load menu categories.");
+      setMenuData([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [rfpFetch]);
+
+  useEffect(() => {
+    fetchInitialMenu();
+  }, [fetchInitialMenu]);
+
+  const fetchAndSetItems = async (categoryId) => {
+    setIsItemsLoading(true);
+    setError(null);
+    try {
+      const response = await getItemsByCategoryAPI(rfpFetch, categoryId);
+      const items = response?.data?.data || response?.data || [];
+      if (!Array.isArray(items)) {
+        throw new Error("Invalid item data format received.");
+      }
+
+      setMenuData((prevMenuData) =>
+        prevMenuData.map((category) =>
+          category.id === categoryId ? { ...category, items: items } : category
+        )
+      );
+    } catch (err) {
+      console.error(`Error fetching items for category ${categoryId}:`, err);
+      setError(err.message || `Failed to load items for this category.`);
+      setMenuData((prevMenuData) =>
+        prevMenuData.map((category) =>
+          category.id === categoryId ? { ...category, items: [] } : category
+        )
+      );
+    } finally {
+      setIsItemsLoading(false);
+    }
+  };
+
+  const toggleCategory = useCallback(
+    (categoryId) => {
+      const isCurrentlyExpanded = expandedCategory === categoryId;
+      const targetCategory = menuData.find((cat) => cat.id === categoryId);
+
+      if (isCurrentlyExpanded) {
+        setExpandedCategory(null);
+      } else {
+        setExpandedCategory(categoryId);
+        if (targetCategory && targetCategory.items === undefined) {
+          fetchAndSetItems(categoryId);
+        }
+      }
+    },
+    [expandedCategory, menuData]
+  );
+
   const calculateTotal = () => {
     let total = 0;
     Object.keys(selectedItems).forEach((itemId) => {
-      const category = menuData.find((cat) =>
-        cat.items.some((item) => item.id === itemId)
-      );
-
-      if (category) {
-        const item = category.items.find((item) => item.id === itemId);
-        if (item) {
-          total += parseInt(item.price);
-        }
+      const item = menuData
+        .flatMap((cat) => cat.items || [])
+        .find((item) => item.id === itemId);
+      if (item?.price) {
+        total += parseFloat(item.price) || 0;
       }
     });
-    return total;
-  };
-
-  const toggleCategory = (categoryId) => {
-    setExpandedCategory(expandedCategory === categoryId ? null : categoryId);
-  };
-
-  const handleAddItem = (categoryId) => {
-    const category = menuData.find((cat) => cat.id === categoryId);
-    setCurrentCategory(category);
-    setCurrentItem(null);
-    setIsNewItem(true);
-    setItemModalOpen(true);
-  };
-
-  const handleEditItem = (categoryId, itemId) => {
-    const category = menuData.find((cat) => cat.id === categoryId);
-    const item = category.items.find((item) => item.id === itemId);
-    setCurrentCategory(category);
-    setCurrentItem(item);
-    setIsNewItem(false);
-    setItemModalOpen(true);
-  };
-
-  const handleSaveItem = (categoryId, itemId, newName, newPrice) => {
-    if (isNewItem) {
-      setMenuData(
-        menuData.map((category) =>
-          category.id === categoryId
-            ? {
-                ...category,
-                items: [
-                  ...category.items,
-                  { id: itemId, name: newName, price: newPrice },
-                ],
-              }
-            : category
-        )
-      );
-    } else {
-      setMenuData(
-        menuData.map((category) =>
-          category.id === categoryId
-            ? {
-                ...category,
-                items: category.items.map((item) =>
-                  item.id === itemId
-                    ? { ...item, name: newName, price: newPrice }
-                    : item
-                ),
-              }
-            : category
-        )
-      );
-    }
-  };
-
-  const handleDeleteItem = (categoryId, itemId) => {
-    if (window.confirm("Are you sure you want to delete this item?")) {
-      setMenuData(
-        menuData.map((category) =>
-          category.id === categoryId
-            ? {
-                ...category,
-                items: category.items.filter((item) => item.id !== itemId),
-              }
-            : category
-        )
-      );
-    }
-  };
-
-  const handleAddCategory = () => {
-    setCurrentCategory(null);
-    setIsNewCategory(true);
-    setCategoryModalOpen(true);
-  };
-
-  const handleEditCategory = (categoryId) => {
-    const category = menuData.find((cat) => cat.id === categoryId);
-    setCurrentCategory(category);
-    setIsNewCategory(false);
-    setCategoryModalOpen(true);
-  };
-
-  const handleSaveCategory = (categoryId, newName) => {
-    if (isNewCategory) {
-      const newCategory = {
-        id: `cat-${Date.now()}`,
-        category: newName,
-        image: "/api/placeholder/600/400",
-        items: [],
-      };
-      setMenuData([...menuData, newCategory]);
-    } else {
-      setMenuData(
-        menuData.map((category) =>
-          category.id === categoryId
-            ? { ...category, category: newName }
-            : category
-        )
-      );
-    }
-  };
-
-  const handleDeleteCategory = (categoryId) => {
-    setMenuData(menuData.filter((category) => category.id !== categoryId));
+    return total.toFixed(2);
   };
 
   const toggleSelectItem = (itemId) => {
     setSelectedItems((prev) => {
       const newSelection = { ...prev };
-      if (newSelection[itemId]) {
-        delete newSelection[itemId];
-      } else {
-        newSelection[itemId] = true;
-      }
+      newSelection[itemId]
+        ? delete newSelection[itemId]
+        : (newSelection[itemId] = true);
       return newSelection;
     });
   };
 
   const handleProceedOrder = () => {
     const selectedCount = Object.keys(selectedItems).length;
-    if (selectedCount === 0) {
-      alert("Please select at least one item");
-      return;
-    }
-
+    if (selectedCount === 0) return alert("Please select at least one item");
     alert(`Order placed with ${selectedCount} items for ₹${calculateTotal()}`);
     setSelectedItems({});
     setShowCart(false);
   };
 
+  const openAddItemModal = (categoryId) => {
+    setCurrentCategory({ id: categoryId });
+    setCurrentItem(null);
+    setIsNewItem(true);
+    setItemModalOpen(true);
+  };
+
+  const openEditItemModal = (categoryId, itemId) => {
+    const category = menuData.find((cat) => cat.id === categoryId);
+    const item = category?.items?.find((i) => i.id === itemId);
+    if (item) {
+      setCurrentCategory({ id: categoryId });
+      setCurrentItem(item);
+      setIsNewItem(false);
+      setItemModalOpen(true);
+    } else {
+      console.error("Item not found for editing", { categoryId, itemId });
+      alert("Could not find the item to edit. It might not be loaded yet.");
+    }
+  };
+
+  const openAddCategoryModal = () => {
+    setCurrentCategory(null);
+    setIsNewCategory(true);
+    setCategoryModalOpen(true);
+  };
+
+  const openEditCategoryModal = (categoryId) => {
+    const category = menuData.find((cat) => cat.id === categoryId);
+    if (category) {
+      setCurrentCategory(category);
+      setIsNewCategory(false);
+      setCategoryModalOpen(true);
+    } else {
+      console.error("Category not found for editing");
+      alert("Could not find the category to edit.");
+    }
+  };
+
+  const closeItemModal = () => {
+    setItemModalOpen(false);
+    setCurrentItem(null);
+    setCurrentCategory(null);
+  };
+
+  const closeCategoryModal = () => {
+    setCategoryModalOpen(false);
+    setCurrentCategory(null);
+  };
+
+  const handleSaveItem = async (categoryId, itemId, name, variants) => {
+    setIsLoading(true);
+    let needsRefetch = true;
+    try {
+      if (isNewItem) {
+        await addItemAPI(rfpFetch, categoryId, name, variants);
+      } else {
+        await updateItemAPI(rfpFetch, itemId, name, variants);
+      }
+      closeItemModal();
+    } catch (error) {
+      needsRefetch = false;
+      console.error("Error saving item:", error);
+      alert(`Failed to save item: ${error.message || "Unknown error"}`);
+    } finally {
+      if (needsRefetch) {
+        setMenuData((prev) =>
+          prev.map((cat) =>
+            cat.id === categoryId ? { ...cat, items: undefined } : cat
+          )
+        );
+        if (expandedCategory === categoryId) {
+          await fetchAndSetItems(categoryId);
+        }
+        setIsLoading(false);
+      } else {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleDeleteItem = async (itemId, categoryId) => {
+    if (!window.confirm("Are you sure you want to delete this item?")) return;
+    setIsLoading(true);
+    let needsRefetch = true;
+    try {
+      await removeItemAPI(rfpFetch, itemId);
+    } catch (error) {
+      needsRefetch = false;
+      console.error("Error deleting item:", error);
+      alert(`Failed to delete item: ${error.message || "Unknown error"}`);
+    } finally {
+      if (needsRefetch && categoryId) {
+        setMenuData((prev) =>
+          prev.map((cat) =>
+            cat.id === categoryId ? { ...cat, items: undefined } : cat
+          )
+        );
+        if (expandedCategory === categoryId) {
+          await fetchAndSetItems(categoryId);
+        }
+        setIsLoading(false);
+      } else {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleSaveCategory = async (categoryId, name, image) => {
+    setIsLoading(true);
+    try {
+      if (isNewCategory) {
+        await addCategoryAPI(rfpFetch, name, image);
+      } else {
+        await updateCategoryAPI(rfpFetch, categoryId, name, image);
+      }
+      closeCategoryModal();
+      await fetchInitialMenu();
+    } catch (error) {
+      console.error("Error saving category:", error);
+      alert(`Failed to save category: ${error.message || "Unknown error"}`);
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId) => {
+    setIsLoading(true);
+    try {
+      await removeCategoryAPI(rfpFetch, categoryId);
+      if (expandedCategory === categoryId) {
+        setExpandedCategory(null);
+      }
+      await fetchInitialMenu();
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      alert(`Failed to delete category: ${error.message || "Unknown error"}`);
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="bg-gray-950 text-white min-h-screen pb-20">
-      <div className="sticky top-0 z-40 bg-gray-900 shadow-lg">
+      <div className="sticky top-0 z-30 bg-gray-900 shadow-lg">
         <div className="max-w-3xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-            <h1 className="text-xl font-bold">सुन्दर भोजन</h1>
+            <h1 className="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-yellow-500">
+              ROYAL FOOD PLAZA MENU
+            </h1>
           </div>
 
           {!isAdmin && (
             <button
-              onClick={() => setShowCart(!showCart)}
-              className="bg-yellow-500 text-black px-4 py-2 rounded-full flex items-center shadow transform transition hover:scale-105"
+              onClick={() => setShowCart(true)}
+              className="bg-yellow-500 text-black px-4 py-2 rounded-full flex items-center shadow transform transition hover:scale-105 disabled:opacity-50 disabled:scale-100"
+              disabled={isLoading}
             >
               <BaggageClaim size={18} />
               <span className="ml-2 font-medium">
@@ -187,8 +299,9 @@ const Menu = ({ isAdmin = true }) => {
 
           {isAdmin && (
             <button
-              onClick={handleAddCategory}
-              className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-black px-4 py-2 rounded-full flex items-center shadow transform transition hover:scale-105"
+              onClick={openAddCategoryModal}
+              className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-black px-4 py-2 rounded-full flex items-center shadow transform transition hover:scale-105 disabled:opacity-50 disabled:scale-100"
+              disabled={isLoading}
             >
               <Plus size={18} />
               <span className="ml-2 font-medium">Add Category</span>
@@ -197,148 +310,77 @@ const Menu = ({ isAdmin = true }) => {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-6">
-        {!isAdmin && showCart && <CartModal
-          isOpen={showCart}
-          onClose={() => setShowCart(false)}
-          menuData={menuData}
-          selectedItems={selectedItems}
-          calculateTotal={calculateTotal}
-          handleProceedOrder={handleProceedOrder}
-        />}
+      <div className="max-w-3xl mx-auto px-4 py-6 relative">
+        {isLoading && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-40">
+            <Loader2 size={40} className="animate-spin text-yellow-500" />
+          </div>
+        )}
 
-        <div className="space-y-4">
-          {menuData.map((category) => (
-            <div
-              key={category.id}
-              className="bg-gray-900 rounded-2xl overflow-hidden shadow transition"
+        {error && (
+          <div
+            className="bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded-lg mb-4 text-center sticky top-16 z-20"
+            role="alert"
+          >
+            <strong className="font-bold">Error:</strong>
+            <span className="block sm:inline"> {error}</span>
+            <button
+              onClick={() => setError(null)}
+              className="absolute top-0 right-0 mt-2 mr-3 text-red-200 hover:text-white"
             >
-              <div
-                className="relative cursor-pointer"
-                onClick={() => toggleCategory(category.id)}
-              >
-                <div className="h-32 relative">
-                  <img
-                    src={category.image}
-                    alt={category.category}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-60"></div>
-                </div>
+              ×
+            </button>
+          </div>
+        )}
 
-                <div className="absolute inset-0 flex items-center justify-between p-4">
-                  <div className="bg-black bg-opacity-70 px-4 py-2 rounded-xl">
-                    <h2 className="text-xl font-bold">{category.category}</h2>
-                    <p className="text-gray-400 text-sm">
-                      {category.items.length} items
-                    </p>
-                  </div>
+        {!isAdmin && (
+          <CartModal
+            isOpen={showCart}
+            onClose={() => setShowCart(false)}
+            menuData={menuData}
+            selectedItems={selectedItems}
+            calculateTotal={calculateTotal}
+            handleProceedOrder={handleProceedOrder}
+          />
+        )}
 
-                  <div className="flex items-center">
-                    {isAdmin && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditCategory(category.id);
-                        }}
-                        className="bg-gray-800 bg-opacity-80 p-2 rounded-full mr-2 hover:bg-yellow-500 hover:text-black transition"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                    )}
-                    <div
-                      className={`bg-gray-800 bg-opacity-80 p-2 rounded-full transition transform ${
-                        expandedCategory === category.id ? "rotate-90" : ""
-                      }`}
-                    >
-                      <ChevronRight size={16} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {expandedCategory === category.id && (
-                <div className="p-4 space-y-2">
-                  {category.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className={`flex justify-between items-center p-3 rounded-xl transition ${
-                        isAdmin
-                          ? "hover:bg-gray-800"
-                          : selectedItems[item.id]
-                          ? "bg-gray-800"
-                          : "hover:bg-gray-800 cursor-pointer"
-                      }`}
-                      onClick={() => !isAdmin && toggleSelectItem(item.id)}
-                    >
-                      <div className="flex items-center">
-                        {!isAdmin && (
-                          <div
-                            className={`w-5 h-5 rounded-full border border-yellow-500 mr-3 flex items-center justify-center transition ${
-                              selectedItems[item.id] ? "bg-yellow-500" : ""
-                            }`}
-                          >
-                            {selectedItems[item.id] && (
-                              <div className="w-2 h-2 bg-black rounded-full"></div>
-                            )}
-                          </div>
-                        )}
-                        <span className="text-base font-medium">
-                          {item.name}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center">
-                        <span className="font-bold text-yellow-500 mr-3">
-                          ₹{item.price}
-                        </span>
-                        {isAdmin && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditItem(category.id, item.id);
-                            }}
-                            className="text-gray-400 hover:text-white p-1 hover:bg-gray-700 rounded-full transition"
-                          >
-                            <Edit2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                  {isAdmin && (
-                    <button
-                      onClick={() => handleAddItem(category.id)}
-                      className="flex items-center justify-center w-full p-3 text-yellow-500 hover:bg-gray-800 rounded-xl mt-3 transition"
-                    >
-                      <Plus size={18} className="mr-2" /> Add New Item
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <MenuItemModal
-          isOpen={itemModalOpen}
-          onClose={() => setItemModalOpen(false)}
-          item={currentItem}
-          categoryId={currentCategory?.id}
-          onSave={handleSaveItem}
-          isNewItem={isNewItem}
-        />
-
-        <CategoryModal
-          isOpen={categoryModalOpen}
-          onClose={() => setCategoryModalOpen(false)}
-          category={currentCategory}
-          onSave={handleSaveCategory}
-          onDelete={handleDeleteCategory}
-          isNewCategory={isNewCategory}
+        <MenuCategories
+          menuData={menuData}
+          isLoading={isLoading || isItemsLoading}
+          isAdmin={isAdmin}
+          expandedCategory={expandedCategory}
+          selectedItems={selectedItems}
+          toggleCategory={toggleCategory}
+          openEditCategoryModal={openEditCategoryModal}
+          handleDeleteCategory={handleDeleteCategory}
+          openAddItemModal={openAddItemModal}
+          openEditItemModal={openEditItemModal}
+          handleDeleteItem={handleDeleteItem}
+          toggleSelectItem={toggleSelectItem}
         />
       </div>
+
+      {isAdmin && (
+        <>
+          <MenuItemModal
+            isOpen={itemModalOpen}
+            onClose={closeItemModal}
+            item={currentItem}
+            categoryId={currentCategory?.id}
+            onSave={handleSaveItem}
+            isNewItem={isNewItem}
+            isLoading={isLoading}
+          />
+          <CategoryModal
+            isOpen={categoryModalOpen}
+            onClose={closeCategoryModal}
+            category={currentCategory}
+            onSave={handleSaveCategory}
+            onDelete={handleDeleteCategory}
+            isNewCategory={isNewCategory}
+          />
+        </>
+      )}
     </div>
   );
 };

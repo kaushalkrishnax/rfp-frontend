@@ -36,9 +36,9 @@ export const AppProvider = ({ children }) => {
     setIsUserAuthenticated(false);
   };
 
-
   const rfpFetch = async (endpoint, options = {}) => {
-    const accessToken = localStorage.getItem("access_token");
+    const accessToken = userInfo?.access_token;
+    const refreshToken = userInfo?.refresh_token;
 
     const headers = {
       "Content-Type": "application/json",
@@ -53,13 +53,50 @@ export const AppProvider = ({ children }) => {
       });
 
       if (response.status === 401) {
-        console.warn("Unauthorized. Logging out...");
+        const resBody = await response.json();
+
+        if (resBody?.message === "invalid_token" && refreshToken) {
+          try {
+            const refreshRes = await fetch(`${RFP_API_URL}/auth/refresh`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ refresh_token: refreshToken }),
+            });
+
+            const refreshData = await refreshRes
+              .json()
+              .then((data) => data.data || {});
+
+            if (refreshRes.ok && refreshData?.access_token) {
+              const newUserInfo = {
+                ...userInfo,
+                access_token: refreshData.access_token,
+              };
+              saveUserInfo(newUserInfo);
+
+              const retryHeaders = {
+                ...headers,
+                Authorization: `Bearer ${refreshData.access_token}`,
+              };
+
+              return await fetch(`${RFP_API_URL}${endpoint}`, {
+                ...options,
+                headers: retryHeaders,
+              });
+            }
+          } catch (refreshError) {
+            console.error("Token refresh failed:", refreshError);
+          }
+        }
+
         deleteUserInfo();
         window.location.reload();
         return null;
       }
 
-      return response;
+      return response.json();
     } catch (error) {
       console.error("rfpFetch error:", error);
       throw error;
