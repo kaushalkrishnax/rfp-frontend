@@ -1,369 +1,230 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useContext,
-} from "react";
-import { BaggageClaim, Plus, Loader2, AlertCircle, X } from "lucide-react";
-import AppContext from "../context/AppContext";
+import React, { useContext, useEffect, useCallback } from "react";
+import { BaggageClaim, Plus, Loader2 } from "lucide-react";
 import { useMenu, MenuProvider } from "../context/MenuContext";
+import AppContext from "../context/AppContext";
 import MenuItemModal from "../components/menu/MenuItemModal";
 import CategoryModal from "../components/menu/CategoryModal";
+import CartModal from "../components/menu/CartModal";
 import MenuCategories from "../components/menu/MenuCategories";
-import CartContentModal from "../components/menu/CartView";
 import rfpLogo from "../assets/rfp.png";
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
-
 const MODAL_TYPES = {
-  NONE: null,
   ITEM: "item",
   CATEGORY: "category",
+  CART: "cart",
+  NONE: null,
 };
 
 const MenuContent = () => {
-  const { userInfo } = useContext(AppContext);
-
   const {
     isAdmin,
     loadingState,
-    error,
-    clearError,
-    tabParams,
     selectedItems,
-    getCartDetails,
     resetCart,
+    modalState,
+    openCategoryModal,
+    openCartModal,
+    closeModal,
     addCategory,
     updateCategory,
-    deleteCategory,
     addItem,
     updateItem,
-    deleteItem,
     createRazorpayOrder,
     verifyRazorpayOrder,
     createCodOrder,
-    toggleCategoryExpansion,
-    toggleSelectItem,
-    expandedCategory,
+    registerCategoryRef,
+    setActiveTab,
+    userInfo,
   } = useMenu();
 
-  const [modalState, setModalState] = useState({
-    type: MODAL_TYPES.NONE,
-    data: null,
-    categoryId: null,
-    isNew: false,
-  });
-  const [isCartContentModalOpen, setIsCartContentModalOpen] = useState(false);
-  const [cartDataVersion, setCartDataVersion] = useState(0);
-  const categoryRefs = useRef({});
-  const initialParamsProcessed = useRef(false);
-  const targetCategoryId = useRef(null);
+  const selectedCount = Object.keys(selectedItems).length;
+  const isBusy = loadingState.initial || loadingState.saving;
 
-  useEffect(() => {
-    const { categoryId } = tabParams || {};
-    if (categoryId !== targetCategoryId.current) {
-      initialParamsProcessed.current = false;
-      targetCategoryId.current = categoryId;
-    }
-    if (
-      categoryId &&
-      !initialParamsProcessed.current &&
-      expandedCategory !== categoryId
-    ) {
-      toggleCategoryExpansion(categoryId);
-    }
-  }, [tabParams, expandedCategory, toggleCategoryExpansion]);
-
-  useEffect(() => {
-    const { categoryId, itemId } = tabParams || {};
-    if (
-      categoryId &&
-      expandedCategory === categoryId &&
-      !loadingState.items &&
-      !initialParamsProcessed.current
-    ) {
-      const element = categoryRefs.current[expandedCategory];
-      if (element) {
-        requestAnimationFrame(() => {
-          element.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-            inline: "nearest",
-          });
-          if (itemId) {
-            setTimeout(() => toggleSelectItem(itemId), 300);
-          }
-          initialParamsProcessed.current = true;
-        });
-      } else {
-        initialParamsProcessed.current = true;
+  const checkoutHandler = useCallback(
+    async (items, amount) => {
+      if (!RAZORPAY_KEY_ID) {
+        alert(
+          "Razorpay configuration missing. Cannot proceed with online payment."
+        );
+        throw new Error("Razorpay Key ID not configured.");
       }
-    }
-  }, [tabParams, expandedCategory, loadingState.items, toggleSelectItem]);
+      if (!userInfo) {
+        alert("User information not available. Cannot proceed.");
+        throw new Error("User info missing for checkout.");
+      }
 
-  const refreshCartData = useCallback(() => {
-    setCartDataVersion((v) => v + 1);
-  }, []);
+      try {
+        const { data: order } = await createRazorpayOrder(amount);
+        if (!order || !order.id || !order.amount) {
+          throw new Error(
+            "Failed to create Razorpay order. Invalid response received."
+          );
+        }
 
-  const handleToggleSelectItem = useCallback(
-    (itemId) => {
-      toggleSelectItem(itemId);
-      refreshCartData();
+        const options = {
+          key: RAZORPAY_KEY_ID,
+          amount: order.amount,
+          currency: "INR",
+          name: "Royal Food Plaza",
+          description: "RFP Order Payment",
+          image: rfpLogo,
+          order_id: order.id,
+          handler: async function (response) {
+            if (
+              response.razorpay_payment_id &&
+              response.razorpay_order_id &&
+              response.razorpay_signature
+            ) {
+              try {
+                const verificationResult = await verifyRazorpayOrder(
+                  order.id,
+                  response.razorpay_payment_id,
+                  response.razorpay_signature,
+                  items,
+                  amount
+                );
+
+                if (verificationResult?.success) {
+                  alert(
+                    `Order placed successfully! Total: ₹${amount.toFixed(2)}`
+                  );
+                  resetCart();
+                  setActiveTab("Orders");
+                  closeModal();
+                } else {
+                  alert(
+                    `Order verification failed: ${
+                      verificationResult?.message || "Please contact support."
+                    }`
+                  );
+                }
+              } catch (verifyError) {
+                console.error("Error verifying payment:", verifyError);
+                alert(
+                  `Payment verification failed: ${
+                    verifyError.message ||
+                    "An unexpected error occurred. Please contact support."
+                  }`
+                );
+              }
+            } else {
+              console.error(
+                "Payment success response missing required fields:",
+                response
+              );
+              alert(
+                "Payment successful, but verification failed due to missing information. Please contact support."
+              );
+            }
+          },
+          prefill: {
+            name: userInfo.full_name || "",
+            contact: userInfo.phone || "",
+          },
+          notes: {
+            address: userInfo.address || "Not provided",
+            user_id: userInfo.id,
+          },
+          theme: {
+            color: "#F59E0B",
+          },
+          modal: {
+            ondismiss: function () {
+              console.log("Razorpay payment modal dismissed.");
+            },
+          },
+        };
+
+        const razor = new window.Razorpay(options);
+        razor.open();
+
+        razor.on("payment.failed", function (response) {
+          console.error("Razorpay Payment Failed:", response.error);
+          let message = "Payment failed.";
+          if (response.error.description)
+            message += ` ${response.error.description}`;
+          if (response.error.reason)
+            message += ` Reason: ${response.error.reason}.`;
+          alert(message + " Please try again or use COD.");
+        });
+      } catch (error) {
+        console.error("Error initiating Razorpay checkout:", error);
+        alert(
+          `Failed to start online payment: ${
+            error.message || "Please try again later or use COD."
+          }`
+        );
+
+        throw error;
+      }
     },
-    [toggleSelectItem, refreshCartData]
+    [
+      createRazorpayOrder,
+      verifyRazorpayOrder,
+      userInfo,
+      resetCart,
+      setActiveTab,
+      closeModal,
+    ]
   );
 
-  const handleResetCart = useCallback(() => {
-    resetCart();
-    setIsCartContentModalOpen(false);
-    refreshCartData();
-  }, [resetCart, refreshCartData]);
-
-  const toggleCartContentModal = useCallback(() => {
-    const newState = !isCartContentModalOpen;
-    setIsCartContentModalOpen(newState);
-    if (newState) {
-      refreshCartData();
-    }
-  }, [isCartContentModalOpen, refreshCartData]);
-
-  const openModal = (type, options = {}) =>
-    setModalState({
-      type,
-      data: options.data || null,
-      categoryId: options.categoryId || null,
-      isNew: options.isNew || false,
-    });
-
-  const closeModal = () =>
-    setModalState({
-      type: MODAL_TYPES.NONE,
-      data: null,
-      categoryId: null,
-      isNew: false,
-    });
-
-  const handleSaveItem = async (categoryId, itemId, name, variants) => {
-    try {
-      const categoryForRefetch = modalState.isNew
-        ? categoryId
-        : modalState.data?.categoryId;
-      if (!categoryForRefetch)
-        throw new Error("Missing category context for item save.");
-
-      if (modalState.isNew) {
-        await addItem(categoryForRefetch, name, variants);
-      } else {
-        await updateItem(itemId, name, variants, categoryForRefetch);
-      }
-      closeModal();
-      refreshCartData();
-    } catch (error) {
-      console.error("Save Item Operation Failed:", error);
-      alert(`Failed to save item: ${error?.message || "Please try again."}`);
-    }
-  };
-
-  const handleDeleteItem = async (itemId, categoryId) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this item? This cannot be undone."
-      )
-    ) {
-      try {
-        await deleteItem(itemId, categoryId);
-        refreshCartData();
-      } catch (error) {
-        console.error("Delete Item Operation Failed:", error);
-        alert(
-          `Failed to delete item: ${error?.message || "Please try again."}`
-        );
-      }
-    }
-  };
-
-  const handleSaveCategory = async (categoryId, name, image) => {
-    try {
-      if (modalState.isNew) {
-        await addCategory(name, image);
-      } else {
-        await updateCategory(categoryId, name, image);
-      }
-      closeModal();
-      refreshCartData();
-    } catch (error) {
-      console.error("Save Category Operation Failed:", error);
-      alert(
-        `Failed to save category: ${error?.message || "Please try again."}`
-      );
-    }
-  };
-
-  const handleDeleteCategory = async (categoryId) => {
-    if (
-      window.confirm(
-        "Delete this category and ALL its items? This cannot be undone."
-      )
-    ) {
-      try {
-        await deleteCategory(categoryId);
-        refreshCartData();
-      } catch (error) {
-        console.error("Delete Category Operation Failed:", error);
-        alert(
-          `Failed to delete category: ${error?.message || "Please try again."}`
-        );
-      }
-    }
-  };
-
   const handleProceedOrder = useCallback(
-    async (paymentMethod) => {
-      const { items, total } = getCartDetails();
+    async (paymentMethod, items, total) => {
       if (items.length === 0) {
-        alert("Your cart is empty. Please add items before proceeding.");
-        return;
+        alert("Your cart is empty.");
+        throw new Error("Cart is empty");
       }
 
       try {
         if (paymentMethod === "cod") {
           const response = await createCodOrder(items, total);
-
-          if (response.success) {
-            alert(`Order placed successfully! Total: ₹${total}`);
+          if (response?.success) {
+            alert(`COD Order placed successfully! Total: ₹${total}`);
+            resetCart();
             setActiveTab("Orders");
+            closeModal();
           } else {
-            alert(
-              `Failed to place order: ${
-                response.message || "Please try again."
-              }`
-            );
+            throw new Error(response?.message || "Failed to place COD order.");
           }
         } else if (paymentMethod === "razorpay") {
           await checkoutHandler(items, total);
         }
       } catch (error) {
-        console.error("Order Creation Failed:", error);
-        alert(
-          `Failed to place order: ${error?.message || "Please try again."}`
-        );
-      } finally {
-        handleResetCart();
+        console.error("Order Processing Failed:", error);
+
+        throw error;
       }
     },
-    [getCartDetails, handleResetCart]
+    [createCodOrder, checkoutHandler, resetCart, setActiveTab, closeModal]
   );
 
-  const registerCategoryRef = useCallback((id, element) => {
-    if (element) categoryRefs.current[id] = element;
-    else delete categoryRefs.current[id];
-  }, []);
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    document.body.appendChild(script);
 
-  const getUpdatedCartDetails = useCallback(() => {
-    return getCartDetails();
-  }, [getCartDetails, cartDataVersion]);
-
-  const isBusy = loadingState.initial || loadingState.saving;
-  const selectedCount = Object.keys(selectedItems).length;
-
-  const openCategoryModal = (category = null) =>
-    openModal(MODAL_TYPES.CATEGORY, { data: category, isNew: !category });
-  const openItemModal = (item = null, categoryId = null) =>
-    openModal(
-      MODAL_TYPES.ITEM,
-      item
-        ? { data: { ...item, categoryId }, isNew: false }
-        : { categoryId, isNew: true }
-    );
-
-  const handleCloseCartContentModal = useCallback(() => {
-    setIsCartContentModalOpen(false);
-  }, []);
-
-  const checkoutHandler = async (items, amount) => {
-    try {
-      const order = await createRazorpayOrder(amount);
-
-      const options = {
-        key: RAZORPAY_KEY_ID,
-        amount: order.amount,
-        currency: "INR",
-        name: "Royal Food Plaza",
-        description: "RFP Order Payment",
-        image: rfpLogo,
-        order_id: order.id,
-        handler: async function (response) {
-          console.log("Payment Response:", response);
-
-          if (response.razorpay_payment_id && response.razorpay_order_id) {
-            const response = await verifyRazorpayOrder(
-              order.id,
-              response.razorpay_payment_id,
-              response.razorpay_signature,
-              items,
-              amount
-            );
-
-            console.log("Payment Verification Response:", response);
-
-            if (response.success) {
-              alert(`Order placed successfully! Total: ₹${order.amount}`);
-              setActiveTab("Orders");
-            } else {
-              alert(
-                `Failed to place order: ${
-                  response.message || "Please try again."
-                }`
-              );
-            }
-          } else {
-            console.error("Payment response missing required information.");
-          }
-        },
-        prefill: {
-          name: userInfo.full_name,
-          contact: userInfo.phone,
-        },
-        notes: {
-          address: userInfo.address || "",
-        },
-        theme: {
-          color: "#121212",
-          backgroundColor: window.matchMedia("(prefers-color-scheme: dark)")
-            .matches
-            ? "#333"
-            : "#fff",
-        },
-      };
-
-      const razor = new window.Razorpay(options);
-      razor.open();
-
-      razor.on("payment.failed", async (paymentData) => {
-        console.log("Payment failed:", paymentData);
-      });
-
-      razor.on("payment.error", (error) => {
-        console.error("Payment error:", error);
-        alert(
-          "An error occurred while processing the payment. Please try again."
-        );
-      });
-    } catch (error) {
-      console.error("Payment processing error:", error);
-      alert(
-        "An error occurred while processing the payment. Please try again."
+    return () => {
+      const existingScript = document.querySelector(
+        'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
       );
-    }
-  };
+      if (existingScript) {
+        document.body.removeChild(existingScript);
+      }
+    };
+  }, []);
 
   return (
-    <div className="bg-gray-950 text-white min-h-screen pb-20 relative">
+    <div className="bg-gray-950 text-white min-h-screen pb-24 relative">
       <header className="sticky top-0 z-30 bg-gray-900/80 backdrop-blur-md shadow-lg">
         <div className="max-w-2xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <div className="w-2.5 h-2.5 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-full"></div>
+            <img
+              src={rfpLogo}
+              alt="RFP Logo"
+              className="w-6 h-6 rounded-full object-cover bg-white p-0.5"
+            />
             <h1 className="text-base sm:text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-yellow-400 tracking-tight">
               MENU
             </h1>
@@ -371,13 +232,18 @@ const MenuContent = () => {
 
           {!isAdmin ? (
             <button
-              onClick={toggleCartContentModal}
-              disabled={isBusy && selectedCount === 0} // Disable only if busy AND cart empty
-              className="bg-yellow-500 text-black px-3 py-1 rounded-full flex items-center shadow-md transition hover:bg-yellow-400 disabled:opacity-60 disabled:cursor-not-allowed text-sm font-medium"
+              onClick={openCartModal}
+              disabled={isBusy && selectedCount === 0}
+              className="bg-yellow-500 text-black px-3 py-1 rounded-full flex items-center shadow-md transition hover:bg-yellow-400 disabled:opacity-60 disabled:cursor-not-allowed text-sm font-medium relative"
               aria-label={`View cart (${selectedCount} items)`}
             >
               <BaggageClaim size={16} />
-              <span className="ml-1.5">{selectedCount}</span>
+              {selectedCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  {selectedCount}
+                </span>
+              )}
+              <span className="ml-1.5 hidden sm:inline">Cart</span>
             </button>
           ) : (
             <button
@@ -393,79 +259,59 @@ const MenuContent = () => {
       </header>
 
       <main className="max-w-2xl mx-auto px-3 sm:px-4 py-4 relative">
-        {isBusy && (
+        {loadingState.initial && (
           <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-40 backdrop-blur-sm">
             <Loader2 size={32} className="animate-spin text-yellow-500" />
+            <span className="ml-3 text-white">Loading Menu...</span>
           </div>
         )}
 
-        {error && (
-          <div className="bg-red-900/90 border border-red-700 text-red-100 px-4 py-2.5 rounded-lg mb-4 text-sm sticky top-[57px] z-20 flex items-center justify-between shadow-lg">
-            <div className="flex items-center">
-              <AlertCircle size={18} className="mr-2 text-red-300" />
-              <span>Error: {error}</span>
-            </div>
-            <button
-              onClick={clearError}
-              className="ml-3 text-red-200 hover:text-white flex-shrink-0"
-              aria-label="Close error message"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        )}
-
-        <MenuCategories
-          openEditCategoryModal={openCategoryModal}
-          handleDeleteCategory={handleDeleteCategory}
-          openAddItemModal={openItemModal}
-          openEditItemModal={openItemModal}
-          handleDeleteItem={handleDeleteItem}
-          registerCategoryRef={registerCategoryRef}
-        />
-
-        {!isAdmin && (
-          <CartContentModal
-            handleProceedOrder={handleProceedOrder}
-            selectedItems={selectedItems}
-            getCartDetails={getUpdatedCartDetails}
-            resetCart={handleResetCart}
-            toggleSelectItem={handleToggleSelectItem}
-            isOpen={isCartContentModalOpen}
-            setIsOpen={handleCloseCartContentModal}
-          />
-        )}
+        <MenuCategories registerCategoryRef={registerCategoryRef} />
       </main>
 
-      {isAdmin && (
-        <>
-          <MenuItemModal
-            isOpen={modalState.type === MODAL_TYPES.ITEM}
-            onClose={closeModal}
-            item={modalState.data}
-            categoryId={modalState.categoryId}
-            onSave={handleSaveItem}
-            isNewItem={modalState.isNew}
-            isLoading={loadingState.saving}
-          />
-          <CategoryModal
-            isOpen={modalState.type === MODAL_TYPES.CATEGORY}
-            onClose={closeModal}
-            category={modalState.data}
-            onSave={handleSaveCategory}
-            isNewCategory={modalState.isNew}
-            isLoading={loadingState.saving}
-          />
-        </>
+      <MenuItemModal
+        isOpen={modalState.type === MODAL_TYPES.ITEM}
+        onClose={closeModal}
+        modalData={modalState.data}
+        onSave={modalState.data?.isNew ? addItem : updateItem}
+        isLoading={loadingState.saving}
+      />
+
+      <CategoryModal
+        isOpen={modalState.type === MODAL_TYPES.CATEGORY}
+        onClose={closeModal}
+        modalData={modalState.data}
+        onSave={modalState.data?.isNew ? addCategory : updateCategory}
+        isLoading={loadingState.saving}
+      />
+
+      {!isAdmin && (
+        <CartModal
+          isOpen={modalState.type === MODAL_TYPES.CART}
+          onClose={closeModal}
+          handleProceedOrder={handleProceedOrder}
+        />
       )}
     </div>
   );
 };
 
-const Menu = ({ isAdmin }) => (
-  <MenuProvider isAdmin={isAdmin}>
-    <MenuContent />
-  </MenuProvider>
-);
+const Menu = ({ isAdmin = false }) => {
+  const { rfpFetch } = useContext(AppContext);
+
+  if (!rfpFetch) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center text-white">
+        Initializing...
+      </div>
+    );
+  }
+
+  return (
+    <MenuProvider isAdmin={isAdmin}>
+      <MenuContent />
+    </MenuProvider>
+  );
+};
 
 export default Menu;

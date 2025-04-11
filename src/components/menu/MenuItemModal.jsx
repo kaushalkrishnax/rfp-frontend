@@ -1,34 +1,28 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import Modal from "../common/Modal";
 
-const MenuItemModal = ({
-  isOpen,
-  onClose,
-  item,
-  categoryId,
-  onSave,
-  isNewItem,
-  isLoading,
-}) => {
+const MenuItemModal = ({ isOpen, onClose, modalData, onSave, isLoading }) => {
+  const { item, categoryId, isNew } = modalData || {};
+
   const [name, setName] = useState("");
-  const [variants, setVariants] = useState([
-    { name: "Half", price: "" },
-    { name: "Full", price: "" },
-    { name: "Custom", price: "" },
-  ]);
+
+  const defaultVariants = useMemo(
+    () => [
+      { name: "Half", price: "" },
+      { name: "Full", price: "" },
+      { name: "Custom", price: "" },
+    ],
+    []
+  );
+
+  const [variants, setVariants] = useState(defaultVariants);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && modalData) {
       setName(item?.name ?? "");
 
-      const defaultVariants = [
-        { name: "Half", price: "" },
-        { name: "Full", price: "" },
-        { name: "Custom", price: "" },
-      ];
-
-      const loadedVariants =
+      const loadedVariantMap =
         item?.variants?.reduce((acc, v) => {
           acc[v.name] = v.price ?? "";
           return acc;
@@ -38,13 +32,16 @@ const MenuItemModal = ({
         defaultVariants.map((dv) => ({
           ...dv,
           price:
-            loadedVariants[dv.name] !== undefined
-              ? String(loadedVariants[dv.name])
+            loadedVariantMap[dv.name] !== undefined
+              ? String(loadedVariantMap[dv.name])
               : "",
         }))
       );
+    } else if (!isOpen) {
+      setName("");
+      setVariants(defaultVariants);
     }
-  }, [item, isOpen]);
+  }, [modalData, isOpen, item, defaultVariants]);
 
   const handleVariantChange = (index, field, value) => {
     setVariants((prev) =>
@@ -62,33 +59,38 @@ const MenuItemModal = ({
 
   const handleSaveClick = () => {
     const finalName = name.trim();
+
     const cleanedVariants = variants
       .map((v) => ({
         name: v.name.trim(),
-        price: parseFloat(v.price) || 0,
+
+        price: parseFloat(v.price),
       }))
+
       .filter((v) => v.name && !isNaN(v.price) && v.price >= 0);
 
-    if (!finalName || cleanedVariants.length === 0) {
+    if (!finalName) {
+      alert("Please enter an item name.");
+      return;
+    }
+    if (cleanedVariants.length === 0) {
       alert(
-        "Please enter an item name and at least one valid price (e.g., Half: 50). Price must be 0 or greater."
+        "Please add at least one valid price (e.g., Half: 50). Price must be 0 or greater."
       );
       return;
     }
 
-    const currentCategoryId = isNewItem ? categoryId : item?.categoryId;
-    if (!currentCategoryId) {
+    if (!categoryId) {
       console.error("Category ID is missing for save operation.");
       alert("Cannot save item: Category information is missing.");
       return;
     }
 
-    onSave(
-      currentCategoryId,
-      isNewItem ? null : item.id,
-      finalName,
-      cleanedVariants
-    );
+    if (isNew) {
+      onSave(categoryId, finalName, cleanedVariants);
+    } else {
+      onSave(item.id, finalName, cleanedVariants, categoryId);
+    }
   };
 
   const footerContent = (
@@ -105,16 +107,18 @@ const MenuItemModal = ({
         disabled={isLoading}
         className="flex-1 bg-yellow-500 hover:bg-yellow-400 text-black font-medium py-2.5 px-4 rounded-xl transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center text-sm"
       >
-        {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "Save"}
+        {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "Save Item"}
       </button>
     </div>
   );
+
+  if (!isOpen) return null;
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isNewItem ? "Add Menu Item" : "Edit Menu Item"}
+      title={isNew ? "Add Menu Item" : "Edit Menu Item"}
       footer={footerContent}
       isLoading={isLoading}
     >
@@ -140,7 +144,7 @@ const MenuItemModal = ({
 
         <div>
           <label className="block text-sm text-gray-700 dark:text-gray-300 mb-2">
-            Prices (Numbers only)
+            Prices
           </label>
           <div className="space-y-2.5">
             {variants.map((variant, index) => (
@@ -157,8 +161,8 @@ const MenuItemModal = ({
                 <input
                   id={`variant-price-${index}`}
                   type="text"
-                  inputMode="decimal"
-                  placeholder="0.00"
+                  inputMode="number"
+                  placeholder="0"
                   value={variant.price}
                   onChange={(e) =>
                     handleVariantChange(index, "price", e.target.value)

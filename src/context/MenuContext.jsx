@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
 } from "react";
 import AppContext from "./AppContext";
 import {
@@ -19,7 +20,14 @@ import {
   createRazorpayOrderAPI,
   verifyRazorpayOrderAPI,
   createCodOrderAPI,
-} from "../services/menuApi.js";
+} from "../services/menuApi";
+
+const MODAL_TYPES = {
+  NONE: null,
+  ITEM: "item",
+  CATEGORY: "category",
+  CART: "cart",
+};
 
 const MenuContext = createContext(null);
 
@@ -31,21 +39,32 @@ export const useMenu = () => {
   return context;
 };
 
-export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
-  const { rfpFetch, tabParams } = useContext(AppContext);
+export const MenuProvider = ({ children, isAdmin = false }) => {
+  const { rfpFetch, tabParams, userInfo, setActiveTab } =
+    useContext(AppContext);
 
   const [menuData, setMenuData] = useState([]);
   const [loadingState, setLoadingState] = useState({
     initial: true,
     items: false,
     saving: false,
+    order: false,
   });
   const [error, setError] = useState(null);
   const [selectedItems, setSelectedItems] = useState({});
+  const [selectedVariants, setSelectedVariants] = useState({});
   const [expandedCategory, setExpandedCategory] = useState(null);
-  const [isAdmin] = useState(initialIsAdmin);
+  const [modalState, setModalState] = useState({
+    type: MODAL_TYPES.NONE,
+    data: null,
+  });
+  const categoryRefs = useRef({});
 
   const clearError = useCallback(() => setError(null), []);
+  const closeModal = useCallback(
+    () => setModalState({ type: MODAL_TYPES.NONE, data: null }),
+    []
+  );
 
   const executeApiCall = useCallback(
     async (apiFunc, loadingKey = "saving", ...args) => {
@@ -53,7 +72,6 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
       setError(null);
       try {
         const result = await apiFunc(rfpFetch, ...args);
-        console.log(result);
         return result;
       } catch (err) {
         console.error(`Error during ${apiFunc.name}:`, err);
@@ -62,6 +80,8 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
           err?.message ||
           "An unexpected error occurred.";
         setError(message);
+
+        alert(`Operation failed: ${message}`);
         throw err;
       } finally {
         setLoadingState((prev) => ({ ...prev, [loadingKey]: false }));
@@ -79,6 +99,7 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
         throw new Error("Invalid category data format received.");
       }
       setMenuData(categories.map((cat) => ({ ...cat, items: undefined })));
+      setExpandedCategory(null);
     } catch (err) {
       setMenuData([]);
     } finally {
@@ -93,41 +114,46 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
 
       const category = menuData[categoryIndex];
 
-      if (category.items !== undefined && !forceRefetch) {
-        setExpandedCategory(categoryId);
+      if (
+        expandedCategory === categoryId &&
+        category.items !== undefined &&
+        !forceRefetch
+      ) {
         return;
       }
 
       setExpandedCategory(categoryId);
-      setLoadingState((prev) => ({ ...prev, items: true }));
 
-      try {
-        const response = await executeApiCall(
-          getItemsByCategoryAPI,
-          null,
-          categoryId
-        );
-        const items = response?.data?.data || response?.data || [];
-        if (!Array.isArray(items)) {
-          throw new Error("Invalid item data format received.");
+      if (category.items === undefined || forceRefetch) {
+        setLoadingState((prev) => ({ ...prev, items: true }));
+        try {
+          const response = await executeApiCall(
+            getItemsByCategoryAPI,
+            "items",
+            categoryId
+          );
+          const items = response?.data?.data || response?.data || [];
+          if (!Array.isArray(items)) {
+            throw new Error("Invalid item data format received.");
+          }
+
+          setMenuData((prevMenuData) => {
+            const newData = [...prevMenuData];
+            newData[categoryIndex] = { ...newData[categoryIndex], items };
+            return newData;
+          });
+        } catch (err) {
+          setMenuData((prevMenuData) => {
+            const newData = [...prevMenuData];
+            newData[categoryIndex] = { ...newData[categoryIndex], items: [] };
+            return newData;
+          });
+        } finally {
+          setLoadingState((prev) => ({ ...prev, items: false }));
         }
-
-        setMenuData((prevMenuData) => {
-          const newData = [...prevMenuData];
-          newData[categoryIndex] = { ...newData[categoryIndex], items };
-          return newData;
-        });
-      } catch (err) {
-        setMenuData((prevMenuData) => {
-          const newData = [...prevMenuData];
-          newData[categoryIndex] = { ...newData[categoryIndex], items: [] };
-          return newData;
-        });
-      } finally {
-        setLoadingState((prev) => ({ ...prev, items: false }));
       }
     },
-    [executeApiCall, menuData]
+    [executeApiCall, menuData, expandedCategory]
   );
 
   const toggleCategoryExpansion = useCallback(
@@ -141,11 +167,22 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
     [expandedCategory, fetchItemsForCategory]
   );
 
+  const registerCategoryRef = useCallback((id, element) => {
+    if (element) categoryRefs.current[id] = element;
+    else delete categoryRefs.current[id];
+  }, []);
+
   const toggleSelectItem = useCallback((itemId) => {
     setSelectedItems((prev) => {
       const newSelection = { ...prev };
       if (newSelection[itemId]) {
         delete newSelection[itemId];
+
+        setSelectedVariants((v) => {
+          const newV = { ...v };
+          delete newV[itemId];
+          return newV;
+        });
       } else {
         newSelection[itemId] = true;
       }
@@ -153,13 +190,19 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
     });
   }, []);
 
-  const resetCart = useCallback(() => {
-    setSelectedItems({});
+  const handleVariantChange = useCallback((itemId, variantIndex) => {
+    setSelectedVariants((prev) => ({ ...prev, [itemId]: variantIndex }));
   }, []);
 
+  const resetCart = useCallback(() => {
+    setSelectedItems({});
+    setSelectedVariants({});
+    closeModal();
+  }, [closeModal]);
+
   const getCartDetails = useCallback(() => {
-    let total = 0;
-    const itemsInCart = [];
+    let amount = 0;
+    const items = [];
     const allItemsMap = new Map();
 
     menuData.forEach((cat) => {
@@ -171,29 +214,31 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
     Object.keys(selectedItems).forEach((itemId) => {
       const item = allItemsMap.get(itemId);
       if (item) {
-        itemsInCart.push(item);
-        const price = parseFloat(item.variants?.[0]?.price) || 0;
-        total += price;
+        items.push(item);
+
+        const variantIndex = selectedVariants[item.id] ?? 0;
+        const price = parseFloat(item.variants?.[variantIndex]?.price);
+        amount += price;
       }
     });
 
-    return { items: itemsInCart, total: parseFloat(total.toFixed(2)) };
-  }, [menuData, selectedItems]);
+    return { items, amount };
+  }, [menuData, selectedItems, selectedVariants]);
 
   const refreshData = useCallback(
-    async (categoryId = null) => {
-      if (categoryId) {
+    async (affectedCategoryId = null) => {
+      if (affectedCategoryId) {
         setMenuData((prev) =>
           prev.map((cat) =>
-            cat.id === categoryId ? { ...cat, items: undefined } : cat
+            cat.id === affectedCategoryId ? { ...cat, items: undefined } : cat
           )
         );
-        if (expandedCategory === categoryId) {
-          await fetchItemsForCategory(categoryId, true);
+
+        if (expandedCategory === affectedCategoryId) {
+          await fetchItemsForCategory(affectedCategoryId, true);
         }
       } else {
         await fetchCategories();
-        setExpandedCategory(null);
       }
     },
     [fetchCategories, fetchItemsForCategory, expandedCategory]
@@ -203,8 +248,9 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
     async (name, image) => {
       await executeApiCall(addCategoryAPI, "saving", name, image);
       await refreshData();
+      closeModal();
     },
-    [executeApiCall, refreshData]
+    [executeApiCall, refreshData, closeModal]
   );
 
   const updateCategory = useCallback(
@@ -217,70 +263,146 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
         image
       );
       await refreshData();
+      closeModal();
     },
-    [executeApiCall, refreshData]
+    [executeApiCall, refreshData, closeModal]
   );
 
   const deleteCategory = useCallback(
     async (categoryId) => {
-      await executeApiCall(removeCategoryAPI, "saving", categoryId);
-      if (expandedCategory === categoryId) {
-        setExpandedCategory(null);
-      }
-      setMenuData((prev) => prev.filter((cat) => cat.id !== categoryId));
-      setSelectedItems((prev) => {
-        const newSelection = { ...prev };
+      if (
+        !window.confirm(
+          "Delete this category and ALL its items? This cannot be undone."
+        )
+      )
+        return;
+      try {
+        await executeApiCall(removeCategoryAPI, "saving", categoryId);
+
         const deletedCat = menuData.find((cat) => cat.id === categoryId);
-        deletedCat?.items?.forEach((item) => delete newSelection[item.id]);
-        return newSelection;
-      });
+        setMenuData((prev) => prev.filter((cat) => cat.id !== categoryId));
+
+        if (deletedCat?.items) {
+          setSelectedItems((prevSelected) => {
+            const newSelection = { ...prevSelected };
+            const newVariants = { ...selectedVariants };
+            deletedCat.items.forEach((item) => {
+              delete newSelection[item.id];
+              delete newVariants[item.id];
+            });
+            setSelectedVariants(newVariants);
+            return newSelection;
+          });
+        }
+
+        if (expandedCategory === categoryId) {
+          setExpandedCategory(null);
+        }
+      } catch (error) {
+        console.error("Failed to delete category:", error);
+
+        await refreshData();
+      }
     },
-    [executeApiCall, expandedCategory, menuData]
+    [executeApiCall, menuData, expandedCategory, selectedVariants]
   );
 
   const addItem = useCallback(
     async (categoryId, name, variants) => {
       await executeApiCall(addItemAPI, "saving", categoryId, name, variants);
       await refreshData(categoryId);
+      closeModal();
     },
-    [executeApiCall, refreshData]
+    [executeApiCall, refreshData, closeModal]
   );
 
   const updateItem = useCallback(
     async (itemId, name, variants, categoryId) => {
       await executeApiCall(updateItemAPI, "saving", itemId, name, variants);
       await refreshData(categoryId);
+      closeModal();
     },
-    [executeApiCall, refreshData]
+    [executeApiCall, refreshData, closeModal]
   );
 
   const deleteItem = useCallback(
     async (itemId, categoryId) => {
-      await executeApiCall(removeItemAPI, "saving", itemId);
-      setSelectedItems((prev) => {
-        const newSelection = { ...prev };
-        delete newSelection[itemId];
-        return newSelection;
-      });
-      await refreshData(categoryId);
+      if (
+        !window.confirm(
+          "Are you sure you want to delete this item? This cannot be undone."
+        )
+      )
+        return;
+      try {
+        await executeApiCall(removeItemAPI, "saving", itemId);
+
+        setSelectedItems((prev) => {
+          const newSelection = { ...prev };
+          delete newSelection[itemId];
+          return newSelection;
+        });
+        setSelectedVariants((prev) => {
+          const newVariants = { ...prev };
+          delete newVariants[itemId];
+          return newVariants;
+        });
+
+        await refreshData(categoryId);
+      } catch (error) {
+        console.error("Failed to delete item:", error);
+
+        await refreshData(categoryId);
+      }
     },
     [executeApiCall, refreshData]
   );
 
-  const createRazorpayOrder = useCallback(async (amount) => {
-    const response = await executeApiCall(
-      createRazorpayOrderAPI,
-      "saving",
-      amount
-    );
-    return response.data;
-  }, [executeApiCall]);
+  const openModal = useCallback((type, data = null) => {
+    setModalState({ type, data });
+  }, []);
+
+  const openItemModal = useCallback(
+    (item = null, categoryId = null) => {
+      const modalData = item
+        ? { item, categoryId: item.categoryId || categoryId, isNew: false }
+        : { item: null, categoryId, isNew: true };
+      openModal(MODAL_TYPES.ITEM, modalData);
+    },
+    [openModal]
+  );
+
+  const openCategoryModal = useCallback(
+    (category = null) => {
+      openModal(MODAL_TYPES.CATEGORY, { category, isNew: !category });
+    },
+    [openModal]
+  );
+
+  const openCartModal = useCallback(() => {
+    openModal(MODAL_TYPES.CART);
+  }, [openModal]);
+
+  const createRazorpayOrder = useCallback(
+    async (amount) => {
+      const response = await executeApiCall(
+        createRazorpayOrderAPI,
+        "order",
+        amount
+      );
+      return response;
+    },
+    [executeApiCall]
+  );
 
   const verifyRazorpayOrder = useCallback(
     async (orderId, paymentId, signature, items, amount) => {
+      if (!userInfo?.id) {
+        throw new Error("User information is missing for order verification.");
+      }
+
       const response = await executeApiCall(
         verifyRazorpayOrderAPI,
-        "saving",
+        "order",
         userInfo.id,
         items,
         orderId,
@@ -288,25 +410,61 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
         signature,
         amount
       );
-      return response.data;
+      return response;
     },
-    [executeApiCall]
+    [executeApiCall, userInfo, selectedVariants]
   );
 
-  const createCodOrder = useCallback(async (items, amount) => {
-    const response = await executeApiCall(
-      createCodOrderAPI,
-      "saving",
-      userInfo.id,
-      items,
-      amount
-    );
-    return response.data;
-  }, [executeApiCall]);
+  const createCodOrder = useCallback(
+    async (items, amount) => {
+      if (!userInfo?.id) {
+        throw new Error("User information is missing for COD order.");
+      }
+
+      const response = await executeApiCall(
+        createCodOrderAPI,
+        "order",
+        userInfo.id,
+        items,
+        amount
+      );
+      return response;
+    },
+    [executeApiCall, userInfo, selectedVariants]
+  );
 
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  useEffect(() => {
+    let { categoryId, itemId } = tabParams || {};
+    if (!categoryId || loadingState.initial) return;
+
+    const categoryExists = menuData.some((cat) => cat.id === categoryId);
+    if (!categoryExists) return;
+
+    const handleScrollAndSelect = () => {
+      const element = categoryRefs.current[categoryId];
+      if (element) {
+        requestAnimationFrame(() => {
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
+
+          if (itemId) {
+            setTimeout(() => toggleSelectItem(itemId), 350);
+          }
+        });
+      }
+    };
+
+    if (expandedCategory !== categoryId) {
+      fetchItemsForCategory(categoryId).then(() => {
+        setTimeout(handleScrollAndSelect, 50);
+      });
+    } else {
+      handleScrollAndSelect();
+    }
+  }, [tabParams, loadingState.initial]);
 
   const value = useMemo(
     () => ({
@@ -315,11 +473,16 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
       error,
       isAdmin,
       selectedItems,
+      selectedVariants,
       expandedCategory,
       tabParams,
-      toggleCategoryExpansion,
+      userInfo,
+      modalState,
       clearError,
+      toggleCategoryExpansion,
+      registerCategoryRef,
       toggleSelectItem,
+      handleVariantChange,
       resetCart,
       getCartDetails,
       addCategory,
@@ -331,6 +494,11 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
       createRazorpayOrder,
       verifyRazorpayOrder,
       createCodOrder,
+      setActiveTab,
+      openItemModal,
+      openCategoryModal,
+      openCartModal,
+      closeModal,
     }),
     [
       menuData,
@@ -338,11 +506,16 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
       error,
       isAdmin,
       selectedItems,
+      selectedVariants,
       expandedCategory,
       tabParams,
-      toggleCategoryExpansion,
+      userInfo,
+      modalState,
       clearError,
+      toggleCategoryExpansion,
+      registerCategoryRef,
       toggleSelectItem,
+      handleVariantChange,
       resetCart,
       getCartDetails,
       addCategory,
@@ -354,6 +527,11 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
       createRazorpayOrder,
       verifyRazorpayOrder,
       createCodOrder,
+      setActiveTab,
+      openItemModal,
+      openCategoryModal,
+      openCartModal,
+      closeModal,
     ]
   );
 
