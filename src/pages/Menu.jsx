@@ -342,7 +342,7 @@ const MenuContent = () => {
   );
 };
 
-const Menu = ({ isAdmin = true }) => (
+const Menu = ({ isAdmin }) => (
   <MenuProvider isAdmin={isAdmin}>
     <MenuContent />
   </MenuProvider>
