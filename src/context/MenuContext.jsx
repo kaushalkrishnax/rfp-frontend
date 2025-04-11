@@ -6,7 +6,7 @@ import React, {
   useEffect,
   useMemo,
 } from "react";
-import AppContext from "./AppContext"; // Adjust path as needed
+import AppContext from "./AppContext";
 import {
   getCategoriesAPI,
   getItemsByCategoryAPI,
@@ -16,7 +16,7 @@ import {
   addItemAPI,
   updateItemAPI,
   removeItemAPI,
-} from "../services/menuApi.js"; // Adjust path as needed
+} from "../services/menuApi.js";
 
 const MenuContext = createContext(null);
 
@@ -45,8 +45,8 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
   const clearError = useCallback(() => setError(null), []);
 
   const executeApiCall = useCallback(
-    async (apiFunc, setLoadingType = "saving", ...args) => {
-      setLoadingState((prev) => ({ ...prev, [setLoadingType]: true }));
+    async (apiFunc, loadingKey = "saving", ...args) => {
+      setLoadingState((prev) => ({ ...prev, [loadingKey]: true }));
       setError(null);
       try {
         const result = await apiFunc(rfpFetch, ...args);
@@ -60,7 +60,7 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
         setError(message);
         throw err;
       } finally {
-        setLoadingState((prev) => ({ ...prev, saving: false }));
+        setLoadingState((prev) => ({ ...prev, [loadingKey]: false }));
       }
     },
     [rfpFetch]
@@ -68,48 +68,41 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
 
   const fetchCategories = useCallback(async () => {
     setLoadingState((prev) => ({ ...prev, initial: true }));
-    setError(null);
     try {
-      const response = await getCategoriesAPI(rfpFetch);
+      const response = await executeApiCall(getCategoriesAPI, "initial");
       const categories = response?.data?.data || response?.data || [];
       if (!Array.isArray(categories)) {
         throw new Error("Invalid category data format received.");
       }
-      setMenuData(
-        categories.map((cat) => ({
-          ...cat,
-          items: undefined,
-        }))
-      );
+      setMenuData(categories.map((cat) => ({ ...cat, items: undefined })));
     } catch (err) {
-      console.error("Error fetching categories:", err);
-      const message =
-        err?.response?.data?.message || err?.message || "Failed to load menu.";
-      setError(message);
       setMenuData([]);
     } finally {
       setLoadingState((prev) => ({ ...prev, initial: false }));
     }
-  }, [rfpFetch]);
+  }, [executeApiCall]);
 
   const fetchItemsForCategory = useCallback(
-    async (categoryId) => {
+    async (categoryId, forceRefetch = false) => {
       const categoryIndex = menuData.findIndex((cat) => cat.id === categoryId);
-      if (categoryIndex === -1) {
-        return;
-      }
+      if (categoryIndex === -1) return;
 
       const category = menuData[categoryIndex];
 
-      if (category.items !== undefined) {
+      if (category.items !== undefined && !forceRefetch) {
         setExpandedCategory(categoryId);
         return;
       }
 
+      setExpandedCategory(categoryId);
       setLoadingState((prev) => ({ ...prev, items: true }));
-      setError(null);
+
       try {
-        const response = await getItemsByCategoryAPI(rfpFetch, categoryId);
+        const response = await executeApiCall(
+          getItemsByCategoryAPI,
+          null,
+          categoryId
+        );
         const items = response?.data?.data || response?.data || [];
         if (!Array.isArray(items)) {
           throw new Error("Invalid item data format received.");
@@ -120,31 +113,22 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
           newData[categoryIndex] = { ...newData[categoryIndex], items };
           return newData;
         });
-        setExpandedCategory(categoryId);
       } catch (err) {
-        console.error(`Error fetching items for category ${categoryId}:`, err);
-        const message =
-          err?.response?.data?.message ||
-          err?.message ||
-          "Failed to load items.";
-        setError(message);
         setMenuData((prevMenuData) => {
           const newData = [...prevMenuData];
           newData[categoryIndex] = { ...newData[categoryIndex], items: [] };
           return newData;
         });
-        setExpandedCategory(categoryId);
       } finally {
         setLoadingState((prev) => ({ ...prev, items: false }));
       }
     },
-    [rfpFetch, menuData]
+    [executeApiCall, menuData]
   );
 
   const toggleCategoryExpansion = useCallback(
     (categoryId) => {
-      const isCurrentlyExpanded = expandedCategory === categoryId;
-      if (isCurrentlyExpanded) {
+      if (expandedCategory === categoryId) {
         setExpandedCategory(null);
       } else {
         fetchItemsForCategory(categoryId);
@@ -188,7 +172,8 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
         total += price;
       }
     });
-    return { items: itemsInCart, total: total.toFixed(2) };
+
+    return { items: itemsInCart, total: parseFloat(total.toFixed(2)) };
   }, [menuData, selectedItems]);
 
   const refreshData = useCallback(
@@ -200,7 +185,7 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
           )
         );
         if (expandedCategory === categoryId) {
-          await fetchItemsForCategory(categoryId);
+          await fetchItemsForCategory(categoryId, true);
         }
       } else {
         await fetchCategories();
@@ -238,9 +223,15 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
       if (expandedCategory === categoryId) {
         setExpandedCategory(null);
       }
-      await refreshData();
+      setMenuData((prev) => prev.filter((cat) => cat.id !== categoryId));
+      setSelectedItems((prev) => {
+        const newSelection = { ...prev };
+        const deletedCat = menuData.find((cat) => cat.id === categoryId);
+        deletedCat?.items?.forEach((item) => delete newSelection[item.id]);
+        return newSelection;
+      });
     },
-    [executeApiCall, refreshData, expandedCategory]
+    [executeApiCall, expandedCategory, menuData]
   );
 
   const addItem = useCallback(
@@ -285,7 +276,6 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
       selectedItems,
       expandedCategory,
       tabParams,
-      // Actions
       toggleCategoryExpansion,
       clearError,
       toggleSelectItem,

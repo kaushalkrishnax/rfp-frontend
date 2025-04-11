@@ -154,7 +154,7 @@ const Home = () => {
               {popularItems.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md w-64 flex-shrink-0 transform transition hover:scale-105"
+                  className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md w-64 flex-shrink-0"
                 >
                   <img
                     src={item.image}
@@ -178,8 +178,8 @@ const Home = () => {
                       <span className="font-bold text-gray-800 dark:text-gray-200">
                         {item.price}
                       </span>
-                      <button className="bg-yellow-500 dark:bg-yellow-600 text-black text-xs px-3 py-1 rounded-full font-medium hover:bg-yellow-400 dark:hover:bg-yellow-500 transition">
-                        Add +
+                      <button className="bg-yellow-400 dark:bg-yellow-500 text-black text-sm px-5 py-2  rounded-full font-medium">
+                        Buy
                       </button>
                     </div>
                   </div>

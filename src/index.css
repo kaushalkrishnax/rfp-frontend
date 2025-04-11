@@ -30,7 +30,6 @@ svg {
   cursor: pointer;
 }
 
-
 /* Hide scrollbar for Chrome, Safari, and Edge */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
@@ -78,7 +77,8 @@ svg {
 }
 
 @keyframes bounce1 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -87,7 +87,8 @@ svg {
 }
 
 @keyframes bounce2 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -96,7 +97,8 @@ svg {
 }
 
 @keyframes bounce3 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -140,7 +142,8 @@ svg {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.2;
   }
   50% {
@@ -154,4 +157,8 @@ svg {
 
 .animate-pulse {
   animation: pulse 6s ease-in-out infinite;
+}
+
+body {
+  @apply bg-gray-950;
 }
