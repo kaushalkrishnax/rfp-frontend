@@ -81,7 +81,7 @@ const Home = () => {
       setError(null);
       try {
         const response = await fetch(
-          `${RFP_API_URL}/menu/items?limit=8&sort=popularity`
+          `${RFP_API_URL}/menu/items`
         );
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
