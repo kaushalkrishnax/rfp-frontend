@@ -1,74 +1,16 @@
-import { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { Search, MapPin } from "lucide-react";
-import AppContext from "../context/AppContext";
-import BottomNav from "../layout/BottomNav";
+import AppContext from "../context/AppContext"; // Adjust path
+import BottomNav from "../layout/BottomNav"; // Adjust path
+
+const RFP_API_URL = import.meta.env.VITE_RFP_API_URL;
 
 const Home = () => {
   const { setActiveTab } = useContext(AppContext);
   const [searchQuery, setSearchQuery] = useState("");
-
-  const openFoodDetails = (id) => {
-    setActiveTab("FoodDetails", { id });
-  };
-
-  const foodCategories = [
-      {
-        id: "momos",
-        name: "Momos",
-        image:
-          "https://www.thespruceeats.com/thmb/UnVh_-znw7ikMUciZIx5sNqBtTU=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/steamed-momos-wontons-1957616-hero-01-1c59e22bad0347daa8f0dfe12894bc3c.jpg",
-        description: "Steamed or fried dumplings",
-      },
-      {
-        id: "paneertikka",
-        name: "Paneer Tikka",
-        image:
-          "https://derafarms.com/cdn/shop/files/deraproducts-2024-06-26T165127.117.png?v=1719400896",
-        description: "Spicy grilled paneer skewers",
-      },
-      {
-        id: "manchuriangravy",
-        name: "Manchurian Gravy",
-        image:
-          "https://t4.ftcdn.net/jpg/08/24/72/15/360_F_824721538_Cxhdoj1bTpOwN1BOgqVJxucWmwWZgPCm.jpg",
-        description: "Indo-Chinese veggie balls in sauce",
-      },
-      {
-        id: "cholebhature",
-        name: "Chole Bhature",
-        image:
-          "https://static.toiimg.com/thumb/53314156.cms?imgsize=1762111&width=800&height=800",
-        description: "North Indian street food",
-      },
-      {
-        id: "tandooriroti",
-        name: "Tandoori Roti",
-        image:
-          "https://img.freepik.com/free-photo/delicious-assortment-traditional-roti_23-2149033987.jpg?semt=ais_hybrid&w=740",
-        description: "Clay oven-baked Indian bread",
-      },
-      {
-        id: "thali",
-        name: "Thali",
-        image:
-          "https://images.picxy.com/cache/2020/7/11/7e70b15d248d64be34323e17ee05bc1c.jpg",
-        description: "Complete Indian meal platter",
-      },
-      {
-        id: "lassi",
-        name: "Lassi",
-        image:
-          "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSZVOz2BkNNLe-ac2FRFJ-6g4sTdXk7y2JZBA&s",
-        description: "Traditional sweet/salty yogurt drink",
-      },
-      {
-        id: "friedmomos",
-        name: "Fried Momos",
-        image:
-          "https://img-global.cpcdn.com/recipes/f208d073a1e7058b/400x400cq70/photo.jpg",
-        description: "Soft syrupy Indian dessert",
-      },
-  ];
+  const [topItems, setTopItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const popularItems = [
     {
@@ -133,26 +75,55 @@ const Home = () => {
     },
   ];
 
+  useEffect(() => {
+    const fetchTopItems = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(
+          `${RFP_API_URL}/menu/items?limit=8&sort=popularity`
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setTopItems(data?.data || []);
+      } catch (err) {
+        console.error("Failed to fetch top items:", err);
+        setError("Could not load items. Please try again later.");
+        setTopItems([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchTopItems();
+  }, []);
+
+  const openItemInMenu = (categoryId, itemId) => {
+    setActiveTab("Menu", { categoryId, itemId });
+  };
+
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-800 dark:text-gray-200 pb-16">
+    <div className="bg-gray-50 dark:bg-gray-950 min-h-screen text-gray-800 dark:text-gray-200 pb-16">
       <div className="flex flex-col bg-white dark:bg-gray-900 p-4 sticky top-0 z-10 shadow-sm gap-2">
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center w-full gap-2">
-            <span className="bg-red-500 text-white text-xs p-2 rounded-full">
-              <MapPin size={18} className="text-white" />
+            <span className="bg-yellow-500 text-black text-xs p-2 rounded-full">
+              <MapPin size={18} className="text-black" />
             </span>
-            <span className="font-medium truncate w-full max-w-3/4">
-              Harichak - Banwaripur Road (851120)
+            <span className="font-medium truncate w-full max-w-3/4 text-sm text-gray-700 dark:text-gray-300">
+              Harichak - Banwaripur Road (851120) {/* Example Address */}
             </span>
           </div>
           <div
-            className="w-10 h-10 rounded-full flex items-center justify-center"
+            className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer"
             onClick={() => setActiveTab("Profile")}
+            aria-label="Open Profile"
           >
             <img
               src="https://i.pinimg.com/736x/b8/f7/07/b8f707b74374a8f4f78e99edab91fa05.jpg"
               alt="Profile"
-              className="rounded-full"
+              className="rounded-full w-full h-full object-cover"
             />
           </div>
         </div>
@@ -161,46 +132,53 @@ const Home = () => {
           <input
             type="text"
             placeholder="Search for dishes..."
-            className="w-full p-2 pl-10 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-red-400 dark:focus:ring-red-600"
+            className="w-full p-2 pl-10 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500 dark:focus:ring-yellow-600 text-gray-900 dark:text-gray-100"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Search for dishes"
           />
           <Search
             size={18}
-            className="absolute left-3 top-2 text-gray-400 dark:text-gray-500"
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none"
           />
         </div>
       </div>
 
-      {/* Main content */}
       <div className="p-4">
         <div className="mb-6">
-          <h2 className="text-lg font-bold mb-3">Today's Specials</h2>
+          <h2 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">
+            Today's Specials
+          </h2>
           <div className="overflow-x-auto no-scrollbar">
             <div className="flex gap-4 w-max pb-2">
               {popularItems.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm w-64 flex-shrink-0"
+                  className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md w-64 flex-shrink-0 transform transition hover:scale-105"
                 >
                   <img
                     src={item.image}
                     alt={item.name}
                     className="w-full h-32 object-cover"
+                    loading="lazy"
                   />
                   <div className="p-3">
-                    <div className="flex justify-between items-start">
-                      <h3 className="font-medium">{item.name}</h3>
-                      <div className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs px-1.5 py-0.5 rounded">
-                        ★ {item.rating}
+                    <div className="flex justify-between items-start mb-1">
+                      <h3 className="font-medium text-gray-900 dark:text-white text-sm truncate">
+                        {item.name}
+                      </h3>
+                      <div className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs px-1.5 py-0.5 rounded flex items-center">
+                        ★<span className="ml-0.5">{item.rating}</span>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                       {item.category}
                     </p>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="font-bold">{item.price}</span>
-                      <button className="bg-red-500 dark:bg-red-600 text-white text-xs px-3 py-1 rounded-full">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-gray-800 dark:text-gray-200">
+                        {item.price}
+                      </span>
+                      <button className="bg-yellow-500 dark:bg-yellow-600 text-black text-xs px-3 py-1 rounded-full font-medium hover:bg-yellow-400 dark:hover:bg-yellow-500 transition">
                         Add +
                       </button>
                     </div>
@@ -212,27 +190,53 @@ const Home = () => {
         </div>
 
         <div className="mt-6">
-          <h2 className="text-lg font-bold mb-4">Our Menu Categories</h2>
-          <div className="grid grid-cols-4 gap-4">
-            {foodCategories.map((category, index) => (
-              <div
-                key={index}
-                className="flex flex-col items-center"
-                onClick={() => openFoodDetails(category.id)}
-              >
-                <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full overflow-hidden flex items-center justify-center">
-                  <img
-                    src={category.image}
-                    alt={category.name}
-                    className="w-full h-full object-cover rounded-full"
-                  />
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            Explore Our Menu
+          </h2>
+          {isLoading && (
+            <p className="text-center text-gray-500 dark:text-gray-400">
+              Loading categories...
+            </p>
+          )}
+          {error && (
+            <p className="text-center text-red-500 dark:text-red-400">
+              {error}
+            </p>
+          )}
+          {!isLoading && !error && topItems.length === 0 && (
+            <p className="text-center text-gray-500 dark:text-gray-400">
+              No categories found.
+            </p>
+          )}
+          {!isLoading && !error && topItems.length > 0 && (
+            <div className="grid grid-cols-4 gap-x-4 gap-y-6">
+              {topItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex flex-col items-center text-center cursor-pointer group"
+                  onClick={() => openItemInMenu(item.category_id, item.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" &&
+                    openItemInMenu(item.category_id, item.id)
+                  }
+                >
+                  <div className="w-16 h-16 bg-yellow-100 dark:bg-gray-800 rounded-full overflow-hidden flex items-center justify-center mb-1 border-2 border-transparent group-hover:border-yellow-500 transition duration-200">
+                    <img
+                      src={item.category_image}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition duration-200">
+                    {item.name}
+                  </span>
                 </div>
-                <span className="text-xs mt-1 text-center font-medium">
-                  {category.name}
-                </span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
       <BottomNav />

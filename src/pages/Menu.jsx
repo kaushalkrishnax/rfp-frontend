@@ -1,278 +1,175 @@
-import React, { useState, useContext, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { BaggageClaim, Plus, Loader2 } from "lucide-react";
+import { useMenu, MenuProvider } from "../context/MenuContext";
 import MenuItemModal from "../components/menu/MenuItemModal";
 import CategoryModal from "../components/menu/CategoryModal";
-import CartModal from "../components/menu/CartModal";
 import MenuCategories from "../components/menu/MenuCategories";
-import AppContext from "../context/AppContext";
-import {
-  getCategoriesAPI,
-  getItemsByCategoryAPI,
-  addCategoryAPI,
-  updateCategoryAPI,
-  removeCategoryAPI,
-  addItemAPI,
-  updateItemAPI,
-  removeItemAPI,
-} from "../services/menuApi.js";
 
-const Menu = ({ isAdmin = true }) => {
-  const { rfpFetch } = useContext(AppContext);
+const MODAL_TYPES = {
+  NONE: null,
+  ITEM: "item",
+  CATEGORY: "category",
+};
 
-  const [menuData, setMenuData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isItemsLoading, setIsItemsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [selectedItems, setSelectedItems] = useState({});
-  const [showCart, setShowCart] = useState(false);
-  const [expandedCategory, setExpandedCategory] = useState(null);
+const MenuContent = () => {
+  const {
+    isAdmin,
+    loadingState,
+    error,
+    clearError,
+    tabParams,
+    selectedItems,
+    getCartDetails,
+    resetCart,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    addItem,
+    updateItem,
+    deleteItem,
+    toggleCategoryExpansion,
+    toggleSelectItem,
+    expandedCategory,
+  } = useMenu();
 
-  const [itemModalOpen, setItemModalOpen] = useState(false);
-  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
-  const [currentItem, setCurrentItem] = useState(null);
-  const [currentCategory, setCurrentCategory] = useState(null);
-  const [isNewItem, setIsNewItem] = useState(false);
-  const [isNewCategory, setIsNewCategory] = useState(false);
+  const [modalState, setModalState] = useState({
+    type: MODAL_TYPES.NONE,
+    data: null,
+    categoryId: null,
+    isNew: false,
+  });
 
-  const fetchInitialMenu = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await getCategoriesAPI(rfpFetch);
-      const categories = response?.data?.data || response?.data || [];
-      if (!Array.isArray(categories)) {
-        throw new Error("Invalid category data format received.");
-      }
-      setMenuData(categories.map((cat) => ({ ...cat, items: undefined })));
-    } catch (err) {
-      console.error("Error fetching categories:", err);
-      setError(err.message || "Failed to load menu categories.");
-      setMenuData([]);
-    } finally {
-      setIsLoading(false);
+  const categoryRefs = useRef({});
+  const initialParamsProcessed = useRef(false);
+  const targetCategoryId = useRef(null);
+  useEffect(() => {
+    const { categoryId } = tabParams || {};
+
+    if (!categoryId || categoryId !== targetCategoryId.current) {
+      initialParamsProcessed.current = false;
+      targetCategoryId.current = categoryId;
     }
-  }, [rfpFetch]);
+
+    if (
+      categoryId &&
+      !initialParamsProcessed.current &&
+      expandedCategory !== categoryId
+    ) {
+      toggleCategoryExpansion(categoryId);
+    }
+  }, [tabParams, expandedCategory, toggleCategoryExpansion]);
 
   useEffect(() => {
-    fetchInitialMenu();
-  }, [fetchInitialMenu]);
+    const { categoryId, itemId } = tabParams || {};
 
-  const fetchAndSetItems = async (categoryId) => {
-    setIsItemsLoading(true);
-    setError(null);
-    try {
-      const response = await getItemsByCategoryAPI(rfpFetch, categoryId);
-      const items = response?.data?.data || response?.data || [];
-      if (!Array.isArray(items)) {
-        throw new Error("Invalid item data format received.");
-      }
+    if (
+      categoryId &&
+      expandedCategory === categoryId &&
+      !loadingState.items &&
+      !initialParamsProcessed.current
+    ) {
+      const element = categoryRefs.current[expandedCategory];
+      if (element) {
+        requestAnimationFrame(() => {
+          element.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
 
-      setMenuData((prevMenuData) =>
-        prevMenuData.map((category) =>
-          category.id === categoryId ? { ...category, items: items } : category
-        )
-      );
-    } catch (err) {
-      console.error(`Error fetching items for category ${categoryId}:`, err);
-      setError(err.message || `Failed to load items for this category.`);
-      setMenuData((prevMenuData) =>
-        prevMenuData.map((category) =>
-          category.id === categoryId ? { ...category, items: [] } : category
-        )
-      );
-    } finally {
-      setIsItemsLoading(false);
-    }
-  };
-
-  const toggleCategory = useCallback(
-    (categoryId) => {
-      const isCurrentlyExpanded = expandedCategory === categoryId;
-      const targetCategory = menuData.find((cat) => cat.id === categoryId);
-
-      if (isCurrentlyExpanded) {
-        setExpandedCategory(null);
+          if (itemId) {
+            setTimeout(() => {
+              toggleSelectItem(itemId);
+            }, 100);
+          }
+        });
+        initialParamsProcessed.current = true;
       } else {
-        setExpandedCategory(categoryId);
-        if (targetCategory && targetCategory.items === undefined) {
-          fetchAndSetItems(categoryId);
-        }
+        console.warn(`Ref for category ${expandedCategory} not found.`);
+        initialParamsProcessed.current = true;
       }
-    },
-    [expandedCategory, menuData]
-  );
-
-  const calculateTotal = () => {
-    let total = 0;
-    Object.keys(selectedItems).forEach((itemId) => {
-      const item = menuData
-        .flatMap((cat) => cat.items || [])
-        .find((item) => item.id === itemId);
-      if (item?.price) {
-        total += parseFloat(item.price) || 0;
-      }
-    });
-    return total.toFixed(2);
-  };
-
-  const toggleSelectItem = (itemId) => {
-    setSelectedItems((prev) => {
-      const newSelection = { ...prev };
-      newSelection[itemId]
-        ? delete newSelection[itemId]
-        : (newSelection[itemId] = true);
-      return newSelection;
-    });
-  };
-
-  const handleProceedOrder = () => {
-    const selectedCount = Object.keys(selectedItems).length;
-    if (selectedCount === 0) return alert("Please select at least one item");
-    alert(`Order placed with ${selectedCount} items for ₹${calculateTotal()}`);
-    setSelectedItems({});
-    setShowCart(false);
-  };
-
-  const openAddItemModal = (categoryId) => {
-    setCurrentCategory({ id: categoryId });
-    setIsNewItem(true);
-    setItemModalOpen(true);
-  };
-
-  const openEditItemModal = (categoryId, itemId) => {
-    const category = menuData.find((cat) => cat.id === categoryId);
-    const item = category?.items?.find((i) => i.id === itemId);
-    if (item) {
-      setCurrentCategory({ id: categoryId });
-      console.log(item);
-
-      setCurrentItem(item);
-      setIsNewItem(false);
-      setItemModalOpen(true);
-    } else {
-      console.error("Item not found for editing", { categoryId, itemId });
-      alert("Could not find the item to edit. It might not be loaded yet.");
     }
-  };
+  }, [tabParams, expandedCategory, loadingState.items, toggleSelectItem]);
 
-  const openAddCategoryModal = () => {
-    setCurrentCategory(null);
-    setIsNewCategory(true);
-    setCategoryModalOpen(true);
-  };
+  const openModal = (type, options = {}) =>
+    setModalState({
+      type,
+      data: options.data || null,
+      categoryId: options.categoryId || null,
+      isNew: options.isNew || false,
+    });
 
-  const openEditCategoryModal = (categoryId) => {
-    const category = menuData.find((cat) => cat.id === categoryId);
-    if (category) {
-      setCurrentCategory(category);
-      setIsNewCategory(false);
-      setCategoryModalOpen(true);
-    } else {
-      console.error("Category not found for editing");
-      alert("Could not find the category to edit.");
-    }
-  };
-
-  const closeItemModal = () => {
-    setItemModalOpen(false);
-    setCurrentItem(null);
-    setCurrentCategory(null);
-  };
-
-  const closeCategoryModal = () => {
-    setCategoryModalOpen(false);
-    setCurrentCategory(null);
-  };
+  const closeModal = () =>
+    setModalState({
+      type: MODAL_TYPES.NONE,
+      data: null,
+      categoryId: null,
+      isNew: false,
+    });
 
   const handleSaveItem = async (categoryId, itemId, name, variants) => {
-    setIsLoading(true);
-    let needsRefetch = true;
     try {
-      if (isNewItem) {
-        await addItemAPI(rfpFetch, categoryId, name, variants);
+      const categoryForRefetch = modalState.isNew
+        ? categoryId
+        : modalState.data?.categoryId;
+      if (modalState.isNew) {
+        await addItem(categoryId, name, variants);
       } else {
-        await updateItemAPI(rfpFetch, itemId, name, variants);
+        await updateItem(itemId, name, variants, categoryForRefetch);
       }
-      closeItemModal();
-    } catch (error) {
-      needsRefetch = false;
-      console.error("Error saving item:", error);
-      alert(`Failed to save item: ${error.message || "Unknown error"}`);
-    } finally {
-      if (needsRefetch) {
-        setMenuData((prev) =>
-          prev.map((cat) =>
-            cat.id === categoryId ? { ...cat, items: undefined } : cat
-          )
-        );
-        if (expandedCategory === categoryId) {
-          await fetchAndSetItems(categoryId);
-        }
-        setIsLoading(false);
-      } else {
-        setIsLoading(false);
-      }
+      closeModal();
+    } catch (err) {
+      console.error("Save Item Error:", err);
+      alert(`Failed to save item: ${err?.message || "Unknown error"}`);
     }
   };
 
-  const handleDeleteItem = async (itemId) => {
-    setIsLoading(true);
-    let needsRefetch = true;
-    try {
-      await removeItemAPI(rfpFetch, itemId);
-    } catch (error) {
-      needsRefetch = false;
-      console.error("Error deleting item:", error);
-      alert(`Failed to delete item: ${error.message || "Unknown error"}`);
-    } finally {
-      if (needsRefetch) {
-        const categoryId = menuData.find((cat) => cat.items?.some((i) => i.id === itemId))?.id;
-        setMenuData((prev) =>
-          prev.map((cat) =>
-            cat.id === categoryId ? { ...cat, items: undefined } : cat
-          )
-        );
-        if (expandedCategory === categoryId) {
-          await fetchAndSetItems(categoryId);
-        }
-        setIsLoading(false);
-      } else {
-        setIsLoading(false);
+  const handleDeleteItem = async (itemId, categoryId) => {
+    if (window.confirm("Are you sure you want to delete this item?")) {
+      try {
+        await deleteItem(itemId, categoryId);
+      } catch (err) {
+        console.error("Delete Item Error:", err);
+        alert(`Failed to delete item: ${err?.message || "Unknown error"}`);
       }
     }
   };
 
   const handleSaveCategory = async (categoryId, name, image) => {
-    setIsLoading(true);
     try {
-      if (isNewCategory) {
-        await addCategoryAPI(rfpFetch, name, image);
-      } else {
-        await updateCategoryAPI(rfpFetch, categoryId, name, image);
-      }
-      closeCategoryModal();
-      await fetchInitialMenu();
-    } catch (error) {
-      console.error("Error saving category:", error);
-      alert(`Failed to save category: ${error.message || "Unknown error"}`);
-      setIsLoading(false);
+      if (modalState.isNew) await addCategory(name, image);
+      else await updateCategory(categoryId, name, image);
+      closeModal();
+    } catch (err) {
+      console.error("Save Category Error:", err);
+      alert(`Failed to save category: ${err?.message || "Unknown error"}`);
     }
   };
 
   const handleDeleteCategory = async (categoryId) => {
-    setIsLoading(true);
-    try {
-      await removeCategoryAPI(rfpFetch, categoryId);
-      if (expandedCategory === categoryId) {
-        setExpandedCategory(null);
+    if (window.confirm("Delete this category and all its items?")) {
+      try {
+        await deleteCategory(categoryId);
+      } catch (err) {
+        console.error("Delete Category Error:", err);
+        alert(`Failed to delete category: ${err?.message || "Unknown error"}`);
       }
-      await fetchInitialMenu();
-    } catch (error) {
-      console.error("Error deleting category:", error);
-      alert(`Failed to delete category: ${error.message || "Unknown error"}`);
-      setIsLoading(false);
     }
   };
+
+  const handleProceedOrder = () => {
+    const { items, total } = getCartDetails();
+    if (items.length === 0) return alert("Please select at least one item");
+    alert(`Order placed with ${items.length} items for ₹${total}`);
+    resetCart();
+  };
+
+  const registerCategoryRef = useCallback((id, element) => {
+    if (element) categoryRefs.current[id] = element;
+    else delete categoryRefs.current[id];
+  }, []);
+
+  const isBusy = loadingState.initial || loadingState.saving;
+  const selectedCount = Object.keys(selectedItems).length;
 
   return (
     <div className="bg-gray-950 text-white min-h-screen pb-20">
@@ -285,24 +182,20 @@ const Menu = ({ isAdmin = true }) => {
             </h1>
           </div>
 
-          {!isAdmin && (
+          {!isAdmin ? (
             <button
-              onClick={() => setShowCart(true)}
+              onClick={() => alert("Cart view not implemented yet.")}
+              disabled={isBusy}
               className="bg-yellow-500 text-black px-4 py-2 rounded-full flex items-center shadow transform transition hover:scale-105 disabled:opacity-50 disabled:scale-100"
-              disabled={isLoading}
             >
               <BaggageClaim size={18} />
-              <span className="ml-2 font-medium">
-                {Object.keys(selectedItems).length}
-              </span>
+              <span className="ml-2 font-medium">{selectedCount}</span>
             </button>
-          )}
-
-          {isAdmin && (
+          ) : (
             <button
-              onClick={openAddCategoryModal}
+              onClick={() => openModal(MODAL_TYPES.CATEGORY, { isNew: true })}
+              disabled={isBusy}
               className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-black px-4 py-2 rounded-full flex items-center shadow transform transition hover:scale-105 disabled:opacity-50 disabled:scale-100"
-              disabled={isLoading}
             >
               <Plus size={18} />
               <span className="ml-2 font-medium">Add Category</span>
@@ -312,7 +205,7 @@ const Menu = ({ isAdmin = true }) => {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6 relative">
-        {isLoading && (
+        {(loadingState.initial || loadingState.saving) && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-40">
             <Loader2 size={40} className="animate-spin text-yellow-500" />
           </div>
@@ -326,65 +219,63 @@ const Menu = ({ isAdmin = true }) => {
             <strong className="font-bold">Error:</strong>
             <span className="block sm:inline"> {error}</span>
             <button
-              onClick={() => setError(null)}
+              onClick={clearError}
               className="absolute top-0 right-0 mt-2 mr-3 text-red-200 hover:text-white"
+              aria-label="Close error message"
             >
               ×
             </button>
           </div>
         )}
 
-        {!isAdmin && (
-          <CartModal
-            isOpen={showCart}
-            onClose={() => setShowCart(false)}
-            menuData={menuData}
-            selectedItems={selectedItems}
-            calculateTotal={calculateTotal}
-            handleProceedOrder={handleProceedOrder}
-          />
-        )}
-
         <MenuCategories
-          menuData={menuData}
-          isLoading={isLoading || isItemsLoading}
-          isAdmin={isAdmin}
-          isItemsLoading={isItemsLoading}
-          expandedCategory={expandedCategory}
-          selectedItems={selectedItems}
-          toggleCategory={toggleCategory}
-          openEditCategoryModal={openEditCategoryModal}
+          openEditCategoryModal={(category) =>
+            openModal(MODAL_TYPES.CATEGORY, { data: category, isNew: false })
+          }
           handleDeleteCategory={handleDeleteCategory}
-          openAddItemModal={openAddItemModal}
-          openEditItemModal={openEditItemModal}
+          openAddItemModal={(catId) =>
+            openModal(MODAL_TYPES.ITEM, { categoryId: catId, isNew: true })
+          }
+          openEditItemModal={(item, categoryId) =>
+            openModal(MODAL_TYPES.ITEM, {
+              data: { ...item, categoryId },
+              isNew: false,
+            })
+          }
           handleDeleteItem={handleDeleteItem}
-          toggleSelectItem={toggleSelectItem}
+          registerCategoryRef={registerCategoryRef}
         />
       </div>
 
       {isAdmin && (
         <>
           <MenuItemModal
-            isOpen={itemModalOpen}
-            onClose={closeItemModal}
-            item={currentItem}
-            categoryId={currentCategory?.id}
+            isOpen={modalState.type === MODAL_TYPES.ITEM}
+            onClose={closeModal}
+            item={modalState.data}
+            categoryId={modalState.categoryId}
             onSave={handleSaveItem}
-            isNewItem={isNewItem}
-            isLoading={isLoading}
+            isNewItem={modalState.isNew}
+            isLoading={loadingState.saving}
           />
           <CategoryModal
-            isOpen={categoryModalOpen}
-            onClose={closeCategoryModal}
-            category={currentCategory}
+            isOpen={modalState.type === MODAL_TYPES.CATEGORY}
+            onClose={closeModal}
+            category={modalState.data}
             onSave={handleSaveCategory}
-            onDelete={handleDeleteCategory}
-            isNewCategory={isNewCategory}
+            isNewCategory={modalState.isNew}
+            isLoading={loadingState.saving}
           />
         </>
       )}
     </div>
   );
 };
+
+const Menu = ({ isAdmin }) => (
+  <MenuProvider isAdmin={isAdmin}>
+    <MenuContent />
+  </MenuProvider>
+);
 
 export default Menu;

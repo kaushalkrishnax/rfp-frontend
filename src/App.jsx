@@ -3,7 +3,7 @@ import AppContext from "./context/AppContext";
 import Home from "./pages/Home";
 import Menu from "./pages/Menu";
 import Orders from "./pages/Orders";
-import FoodDetails from "./components/FoodDetails";
+import Checkout from "./pages/Checkout";
 import BottomNav from "./layout/BottomNav";
 import Profile from "./pages/Profile";
 import LoadingScreen from "./components/LoadingScreen";
@@ -24,7 +24,7 @@ function App() {
   const TabComponents = {
     Home,
     Menu,
-    FoodDetails,
+    Checkout,
     Orders,
     Profile,
     FinalizeAuth,
