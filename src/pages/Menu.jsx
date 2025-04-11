@@ -1,10 +1,20 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useContext,
+} from "react";
 import { BaggageClaim, Plus, Loader2, AlertCircle, X } from "lucide-react";
+import AppContext from "../context/AppContext";
 import { useMenu, MenuProvider } from "../context/MenuContext";
 import MenuItemModal from "../components/menu/MenuItemModal";
 import CategoryModal from "../components/menu/CategoryModal";
 import MenuCategories from "../components/menu/MenuCategories";
 import CartContentModal from "../components/menu/CartView";
+import rfpLogo from "../assets/rfp.png";
+
+const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 
 const MODAL_TYPES = {
   NONE: null,
@@ -13,6 +23,8 @@ const MODAL_TYPES = {
 };
 
 const MenuContent = () => {
+  const { userInfo } = useContext(AppContext);
+
   const {
     isAdmin,
     loadingState,
@@ -28,6 +40,9 @@ const MenuContent = () => {
     addItem,
     updateItem,
     deleteItem,
+    createRazorpayOrder,
+    verifyRazorpayOrder,
+    createCodOrder,
     toggleCategoryExpansion,
     toggleSelectItem,
     expandedCategory,
@@ -144,9 +159,9 @@ const MenuContent = () => {
       }
       closeModal();
       refreshCartData();
-    } catch (err) {
-      console.error("Save Item Operation Failed:", err);
-      alert(`Failed to save item: ${err?.message || "Please try again."}`);
+    } catch (error) {
+      console.error("Save Item Operation Failed:", error);
+      alert(`Failed to save item: ${error?.message || "Please try again."}`);
     }
   };
 
@@ -159,9 +174,11 @@ const MenuContent = () => {
       try {
         await deleteItem(itemId, categoryId);
         refreshCartData();
-      } catch (err) {
-        console.error("Delete Item Operation Failed:", err);
-        alert(`Failed to delete item: ${err?.message || "Please try again."}`);
+      } catch (error) {
+        console.error("Delete Item Operation Failed:", error);
+        alert(
+          `Failed to delete item: ${error?.message || "Please try again."}`
+        );
       }
     }
   };
@@ -175,9 +192,11 @@ const MenuContent = () => {
       }
       closeModal();
       refreshCartData();
-    } catch (err) {
-      console.error("Save Category Operation Failed:", err);
-      alert(`Failed to save category: ${err?.message || "Please try again."}`);
+    } catch (error) {
+      console.error("Save Category Operation Failed:", error);
+      alert(
+        `Failed to save category: ${error?.message || "Please try again."}`
+      );
     }
   };
 
@@ -190,27 +209,51 @@ const MenuContent = () => {
       try {
         await deleteCategory(categoryId);
         refreshCartData();
-      } catch (err) {
-        console.error("Delete Category Operation Failed:", err);
+      } catch (error) {
+        console.error("Delete Category Operation Failed:", error);
         alert(
-          `Failed to delete category: ${err?.message || "Please try again."}`
+          `Failed to delete category: ${error?.message || "Please try again."}`
         );
       }
     }
   };
 
-  const handleProceedOrder = useCallback(async () => {
-    const { items, total } = getCartDetails();
-    if (items.length === 0) {
-      alert("Your cart is empty. Please add items before proceeding.");
-      return;
-    }
+  const handleProceedOrder = useCallback(
+    async (paymentMethod) => {
+      const { items, total } = getCartDetails();
+      if (items.length === 0) {
+        alert("Your cart is empty. Please add items before proceeding.");
+        return;
+      }
 
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    alert(`Order placed successfully! Total: ₹${total}`);
+      try {
+        if (paymentMethod === "cod") {
+          const response = await createCodOrder(items, total);
 
-    handleResetCart();
-  }, [getCartDetails, handleResetCart]);
+          if (response.success) {
+            alert(`Order placed successfully! Total: ₹${total}`);
+            setActiveTab("Orders");
+          } else {
+            alert(
+              `Failed to place order: ${
+                response.message || "Please try again."
+              }`
+            );
+          }
+        } else if (paymentMethod === "razorpay") {
+          await checkoutHandler(items, total);
+        }
+      } catch (error) {
+        console.error("Order Creation Failed:", error);
+        alert(
+          `Failed to place order: ${error?.message || "Please try again."}`
+        );
+      } finally {
+        handleResetCart();
+      }
+    },
+    [getCartDetails, handleResetCart]
+  );
 
   const registerCategoryRef = useCallback((id, element) => {
     if (element) categoryRefs.current[id] = element;
@@ -237,6 +280,83 @@ const MenuContent = () => {
   const handleCloseCartContentModal = useCallback(() => {
     setIsCartContentModalOpen(false);
   }, []);
+
+  const checkoutHandler = async (items, amount) => {
+    try {
+      const order = await createRazorpayOrder(amount);
+
+      const options = {
+        key: RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: "INR",
+        name: "Royal Food Plaza",
+        description: "RFP Order Payment",
+        image: rfpLogo,
+        order_id: order.id,
+        handler: async function (response) {
+          console.log("Payment Response:", response);
+
+          if (response.razorpay_payment_id && response.razorpay_order_id) {
+            const response = await verifyRazorpayOrder(
+              order.id,
+              response.razorpay_payment_id,
+              response.razorpay_signature,
+              items,
+              amount
+            );
+
+            console.log("Payment Verification Response:", response);
+
+            if (response.success) {
+              alert(`Order placed successfully! Total: ₹${order.amount}`);
+              setActiveTab("Orders");
+            } else {
+              alert(
+                `Failed to place order: ${
+                  response.message || "Please try again."
+                }`
+              );
+            }
+          } else {
+            console.error("Payment response missing required information.");
+          }
+        },
+        prefill: {
+          name: userInfo.full_name,
+          contact: userInfo.phone,
+        },
+        notes: {
+          address: userInfo.address || "",
+        },
+        theme: {
+          color: "#121212",
+          backgroundColor: window.matchMedia("(prefers-color-scheme: dark)")
+            .matches
+            ? "#333"
+            : "#fff",
+        },
+      };
+
+      const razor = new window.Razorpay(options);
+      razor.open();
+
+      razor.on("payment.failed", async (paymentData) => {
+        console.log("Payment failed:", paymentData);
+      });
+
+      razor.on("payment.error", (error) => {
+        console.error("Payment error:", error);
+        alert(
+          "An error occurred while processing the payment. Please try again."
+        );
+      });
+    } catch (error) {
+      console.error("Payment processing error:", error);
+      alert(
+        "An error occurred while processing the payment. Please try again."
+      );
+    }
+  };
 
   return (
     <div className="bg-gray-950 text-white min-h-screen pb-20 relative">

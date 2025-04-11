@@ -36,3 +36,39 @@ export const updateItemAPI = (rfpFetch, itemId, name, variants) =>
 
 export const removeItemAPI = (rfpFetch, itemId) =>
   rfpFetch(`/menu/items/remove/${itemId}`, { method: "DELETE" });
+
+export const createRazorpayOrderAPI = (rfpFetch, amount) =>
+  rfpFetch("/orders/create/razorpay", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount }),
+  });
+
+export const verifyRazorpayOrderAPI = (
+  rfpFetch,
+  user_id,
+  items,
+  razorpay_order_id,
+  razorpay_payment_id,
+  razorpay_signature,
+  amount
+) =>
+  rfpFetch("/orders/verify/razorpay", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id,
+      items,
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      amount,
+    }),
+  });
+
+export const createCodOrderAPI = (rfpFetch, user_id, items, amount) =>
+  rfpFetch("/orders/create/cod", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id, items, amount }),
+  });

@@ -22,7 +22,7 @@ const Modal = ({ isOpen, onClose, title, children, footer, isLoading }) => {
       onClick={!isLoading ? onClose : undefined}
     >
       <div
-        className="bg-white dark:bg-gray-900 rounded-2xl p-5 md:p-6 w-full max-w-md mx-auto shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[70vh]"
+        className="bg-white dark:bg-gray-900 rounded-2xl p-5 md:p-6 w-full max-w-md mx-auto shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[80vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-4 flex-shrink-0">

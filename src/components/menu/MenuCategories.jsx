@@ -4,7 +4,6 @@ import { useMenu } from "../../context/MenuContext";
 
 const DEFAULT_IMAGE = "https://placehold.co/600x400/333/555?text=No+Image";
 
-// MenuItem Component
 const MenuItem = React.memo(
   ({
     item,
@@ -102,7 +101,6 @@ const MenuItem = React.memo(
   }
 );
 
-// MenuCategory Component
 const MenuCategory = React.memo(
   ({
     category,
@@ -128,13 +126,6 @@ const MenuCategory = React.memo(
       loadingState.items && expandedCategory === category.id;
     const isBusy = loadingState.initial || loadingState.saving;
 
-    const handleImageError = (e) => {
-      if (e.target.src !== DEFAULT_IMAGE) {
-        e.target.onerror = null;
-        e.target.src = DEFAULT_IMAGE;
-      }
-    };
-
     return (
       <div
         ref={(el) => registerCategoryRef(category.id, el)}
@@ -150,10 +141,9 @@ const MenuCategory = React.memo(
         >
           <div className="h-32 relative">
             <img
-              src={category.image || DEFAULT_IMAGE}
-              alt={category.name || "Category"}
+              src={category.image}
+              alt={category.name}
               className="w-full h-full object-cover brightness-75 group-hover:brightness-90 transition-all duration-300"
-              onError={handleImageError}
               loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />

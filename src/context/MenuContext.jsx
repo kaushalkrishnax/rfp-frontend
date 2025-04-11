@@ -16,6 +16,9 @@ import {
   addItemAPI,
   updateItemAPI,
   removeItemAPI,
+  createRazorpayOrderAPI,
+  verifyRazorpayOrderAPI,
+  createCodOrderAPI,
 } from "../services/menuApi.js";
 
 const MenuContext = createContext(null);
@@ -50,6 +53,7 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
       setError(null);
       try {
         const result = await apiFunc(rfpFetch, ...args);
+        console.log(result);
         return result;
       } catch (err) {
         console.error(`Error during ${apiFunc.name}:`, err);
@@ -263,6 +267,43 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
     [executeApiCall, refreshData]
   );
 
+  const createRazorpayOrder = useCallback(async (amount) => {
+    const response = await executeApiCall(
+      createRazorpayOrderAPI,
+      "saving",
+      amount
+    );
+    return response.data;
+  }, [executeApiCall]);
+
+  const verifyRazorpayOrder = useCallback(
+    async (orderId, paymentId, signature, items, amount) => {
+      const response = await executeApiCall(
+        verifyRazorpayOrderAPI,
+        "saving",
+        userInfo.id,
+        items,
+        orderId,
+        paymentId,
+        signature,
+        amount
+      );
+      return response.data;
+    },
+    [executeApiCall]
+  );
+
+  const createCodOrder = useCallback(async (items, amount) => {
+    const response = await executeApiCall(
+      createCodOrderAPI,
+      "saving",
+      userInfo.id,
+      items,
+      amount
+    );
+    return response.data;
+  }, [executeApiCall]);
+
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
@@ -287,6 +328,9 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
       addItem,
       updateItem,
       deleteItem,
+      createRazorpayOrder,
+      verifyRazorpayOrder,
+      createCodOrder,
     }),
     [
       menuData,
@@ -307,6 +351,9 @@ export const MenuProvider = ({ children, isAdmin: initialIsAdmin = false }) => {
       addItem,
       updateItem,
       deleteItem,
+      createRazorpayOrder,
+      verifyRazorpayOrder,
+      createCodOrder,
     ]
   );
 

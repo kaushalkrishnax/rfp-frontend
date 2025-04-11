@@ -1,4 +1,3 @@
-// src/components/menu/CartView.jsx
 import React, { useState, useEffect } from "react";
 import { ShoppingCart, X, Loader2, ArrowLeft } from "lucide-react";
 import Modal from "../common/Modal";
@@ -16,6 +15,7 @@ const CartView = ({
   const [selectedVariants, setSelectedVariants] = useState({});
   const [isCheckoutView, setIsCheckoutView] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("cod");
 
   useEffect(() => {
     if (isOpen) {
@@ -47,7 +47,7 @@ const CartView = ({
   const handleConfirmOrder = async () => {
     setIsProcessing(true);
     try {
-      await handleProceedOrder();
+      await handleProceedOrder(paymentMethod);
       setIsOpen(false);
       setIsCheckoutView(false);
     } catch (error) {
@@ -122,34 +122,6 @@ const CartView = ({
 
   const CheckoutContent = () => (
     <div className="space-y-4">
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 max-h-48 overflow-y-auto scrollbar-thin">
-        <h3 className="text-gray-600 dark:text-gray-300 text-xs uppercase tracking-wider mb-2 font-medium">
-          Order Summary
-        </h3>
-        <div className="flex flex-col">
-          {cartData.items.map((item) => (
-            <div
-              key={item.id}
-              className="py-1.5 flex justify-between items-center text-sm"
-            >
-              <div>
-                <p className="font-medium text-black dark:text-white">
-                  {item.name}
-                </p>
-                {item.variants && (
-                  <p className="text-gray-500 dark:text-gray-400 text-xs">
-                    {item.variants[selectedVariants[item.id] || 0]?.name}
-                  </p>
-                )}
-              </div>
-              <div className="text-yellow-500 font-medium">
-                {renderPrice(item)}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-sm">
         <div className="flex justify-between">
           <span className="text-black dark:text-white font-semibold">
@@ -158,6 +130,39 @@ const CartView = ({
           <span className="text-yellow-500 font-bold">
             {formatPrice(cartData.total)}
           </span>
+        </div>
+      </div>
+      <div className="mt-4 bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-sm">
+        <p className="text-black dark:text-white font-semibold mb-3">
+          Select Payment Method
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => setPaymentMethod("razorpay")}
+            className={`w-full px-4 py-2 rounded-lg border text-sm font-medium transition-all
+        ${
+          paymentMethod === "razorpay"
+            ? "bg-yellow-500 text-black border-yellow-500 shadow"
+            : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600"
+        }`}
+            disabled={isProcessing}
+          >
+            Online Payment
+          </button>
+
+          <button
+            onClick={() => setPaymentMethod("cod")}
+            className={`w-full px-4 py-2 rounded-lg border text-sm font-medium transition-all
+        ${
+          paymentMethod === "cod"
+            ? "bg-yellow-500 text-black border-yellow-500 shadow"
+            : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600"
+        }`}
+            disabled={isProcessing}
+          >
+            Cash on Delivery
+          </button>
         </div>
       </div>
     </div>
@@ -197,7 +202,7 @@ const CartView = ({
               disabled={cartData.items.length === 0}
               className="py-2.5 bg-yellow-500 text-black font-medium rounded-xl hover:bg-yellow-400 transition text-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {cartData.items.length === 0 ? "Cart Empty" : "Checkout"}
+              {cartData.items.length === 0 ? "Cart Empty" : "Continue"}
             </button>
           </div>
         </div>
@@ -220,7 +225,7 @@ const CartView = ({
             {isProcessing ? (
               <Loader2 className="animate-spin h-5 w-5" />
             ) : (
-              "Confirm"
+              "Checkout"
             )}
           </button>
         </div>
