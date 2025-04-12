@@ -102,7 +102,10 @@ const CartModal = ({ isOpen, onClose, handleProceedOrder }) => {
             <div className="flex items-center gap-1 mt-2">
               <button
                 onClick={() =>
-                  handleQuantityChange(item.id, Math.max(1, quantity - 1))
+                  handleQuantityChange(
+                    item.id,
+                    Math.max(1, Number(quantity || 1) - 1)
+                  )
                 }
                 className="bg-gray-300 dark:bg-gray-600 p-1 rounded-full hover:bg-gray-400 dark:hover:bg-gray-500"
               >
@@ -110,15 +113,18 @@ const CartModal = ({ isOpen, onClose, handleProceedOrder }) => {
               </button>
 
               <span className="text-sm font-semibold text-black dark:text-white px-2">
-                {quantity}
+                {Number(quantity || 1)}
               </span>
 
               <button
-                onClick={() => handleQuantityChange(item.id, quantity + 1)}
+                onClick={() =>
+                  handleQuantityChange(item.id, Number(quantity || 1) + 1)
+                }
                 className="bg-gray-300 dark:bg-gray-600 p-1 rounded-full hover:bg-gray-400 dark:hover:bg-gray-500"
               >
                 <Plus size={16} className="text-black dark:text-white" />
               </button>
+
               <button
                 onClick={() => toggleSelectItem(item.id)}
                 className="ml-2 text-red-500 hover:text-red-400"

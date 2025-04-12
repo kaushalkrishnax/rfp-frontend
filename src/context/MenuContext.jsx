@@ -40,8 +40,7 @@ export const useMenu = () => {
 };
 
 export const MenuProvider = ({ children, isAdmin, routeParams }) => {
-  const { rfpFetch, userInfo } =
-    useContext(AppContext);
+  const { rfpFetch, userInfo } = useContext(AppContext);
 
   const [menuData, setMenuData] = useState([]);
   const [loadingState, setLoadingState] = useState({
@@ -195,11 +194,12 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
   }, []);
 
   const handleQuantityChange = useCallback((itemId, newQuantity) => {
-    if (newQuantity < 1) return;
-  
+    const quantity = parseInt(newQuantity);
+    if (isNaN(quantity) || quantity < 1) return;
+
     setSelectedItems((prev) => ({
       ...prev,
-      [itemId]: newQuantity,
+      [itemId]: quantity,
     }));
   }, []);
 
@@ -219,23 +219,23 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
         cat.items.forEach((item) => allItemsMap.set(item.id, item));
       }
     });
-  
+
     Object.keys(selectedItems).forEach((itemId) => {
       const item = allItemsMap.get(itemId);
       const quantity = selectedItems[itemId];
-  
+
       if (item && quantity > 0) {
         items.push({ ...item, quantity });
-  
+
         const variantIndex = selectedVariants[item.id] ?? 0;
         const price = parseFloat(item.variants?.[variantIndex]?.price || 0);
-  
+
         amount += price * quantity;
       }
     });
-  
+
     return { items, amount };
-  }, [menuData, selectedItems, selectedVariants]);  
+  }, [menuData, selectedItems, selectedVariants]);
 
   const refreshData = useCallback(
     async (affectedCategoryId = null) => {
@@ -448,7 +448,6 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
-
 
   useEffect(() => {
     let { categoryId, itemId } = routeParams || {};

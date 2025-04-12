@@ -102,12 +102,12 @@ const Home = () => {
   };
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-950 min-h-screen text-gray-800 dark:text-gray-200 pb-16">
+    <div className="bg-white dark:bg-gray-900 min-h-screen text-gray-800 dark:text-gray-200 pb-16">
       <div className="flex flex-col bg-white dark:bg-gray-900 p-4 sticky top-0 z-10 shadow-sm gap-2">
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center w-full gap-2">
-            <span className="bg-yellow-500 text-black text-xs p-2 rounded-full">
-              <MapPin size={18} className="text-black" />
+            <span className="bg-yellow-400 text-black text-xs p-2 rounded-full">
+              <MapPin size={18} />
             </span>
             <span className="font-medium truncate w-full max-w-3/4 text-sm text-gray-700 dark:text-gray-300">
               Harichak - Banwaripur Road (851120)
@@ -115,7 +115,7 @@ const Home = () => {
           </div>
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer"
-            onClick={() => setActiveTab("Profile")}
+            onClick={() => navigate("/profile")}
             aria-label="Open Profile"
           >
             <img

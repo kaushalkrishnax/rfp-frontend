@@ -7,9 +7,8 @@ import Menu from "./pages/Menu";
 import Orders from "./pages/Orders";
 import Profile from "./pages/Profile";
 import LoadingScreen from "./components/LoadingScreen";
-import FinalizeAuth from "./components/FinalizeAuth";
+import FinalizeAuth from "./pages/FinalizeAuth";
 import BottomNav from "./layout/BottomNav";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 function App() {
   const { isUserAuthenticated } = useContext(AppContext);
@@ -38,7 +37,6 @@ function App() {
             <Route path="/menu" element={<Menu />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <BottomNav />

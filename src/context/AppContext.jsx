@@ -5,10 +5,10 @@ const AppContext = createContext();
 const RFP_API_URL = import.meta.env.VITE_RFP_API_URL;
 
 export const AppProvider = ({ children }) => {
-  const [isAdmin, setIsAdmin] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
-  
+
   useEffect(() => {
     const userInfo = localStorage.getItem("userInfo");
     if (userInfo) {

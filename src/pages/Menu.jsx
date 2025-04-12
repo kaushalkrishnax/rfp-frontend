@@ -95,7 +95,9 @@ const MenuContent = () => {
                   );
                   resetCart();
                   closeModal();
-                  navigate("/orders", { state: { order_id: order.id } });
+                  navigate("/orders", {
+                    state: { order_id: verificationResult?.data?.id },
+                  });
                 } else {
                   alert(
                     `Order verification failed: ${
@@ -220,14 +222,14 @@ const MenuContent = () => {
   }, []);
 
   return (
-    <div className="bg-gray-200 dark:bg-gray-900 min-h-screen pb-24 relative">
-      <header className="sticky top-0 z-30 bg-gray-200/90 dark:bg-gray-900/90 backdrop-blur-md shadow-lg">
+    <div className="bg-white dark:bg-gray-900 min-h-screen pb-20 relative">
+      <header className="sticky top-0 z-30 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-lg">
         <div className="max-w-2xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <img
               src={rfpLogo}
               alt="RFP Logo"
-              className="w-6 h-6 rounded-full object-cover bg-gray-200 dark:bg-gray-900 p-0.5"
+              className="w-6 h-6 rounded-full object-cover bg-white dark:bg-gray-900 p-0.5"
             />
             <h1 className="text-base sm:text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-yellow-400 tracking-tight">
               MENU
@@ -249,9 +251,11 @@ const MenuContent = () => {
 
       <main className="max-w-2xl mx-auto px-3 sm:px-4 py-4 relative">
         {loadingState.initial && (
-          <div className="fixed inset-0 bg-gray-200/60 dark:bg-gray-900/60 flex justify-center items-center z-40 backdrop-blur-sm">
+          <div className="fixed inset-0 bg-white/60 dark:bg-gray-900/60 flex justify-center items-center z-40 backdrop-blur-sm">
             <Loader2 size={32} className="animate-spin text-yellow-500" />
-            <span className="ml-3 text-gray-900 dark:text-gray-100">Loading Menu...</span>
+            <span className="ml-3 text-gray-900 dark:text-gray-100">
+              Loading Menu...
+            </span>
           </div>
         )}
 

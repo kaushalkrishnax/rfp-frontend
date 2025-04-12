@@ -103,7 +103,7 @@ const FinalizeAuth = () => {
         return;
       }
 
-      const { id, full_name, phone, refresh_token, access_token } = data.data;
+      const { id, full_name, phone, refresh_token, access_token, role } = data.data;
 
       saveUserInfo({
         id,
@@ -111,6 +111,7 @@ const FinalizeAuth = () => {
         phone,
         refresh_token,
         access_token,
+        role
       });
 
       setIsLoading(false);
