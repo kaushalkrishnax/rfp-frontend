@@ -5,16 +5,10 @@ const AppContext = createContext();
 const RFP_API_URL = import.meta.env.VITE_RFP_API_URL;
 
 export const AppProvider = ({ children }) => {
-  const [activeTab, setActiveTabState] = useState("Home");
+  const [isAdmin, setIsAdmin] = useState(true);
   const [userInfo, setUserInfo] = useState(null);
   const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
-  const [tabParams, setTabParams] = useState(null);
-
-  const setActiveTab = (pageName, params = null) => {
-    setActiveTabState(pageName);
-    setTabParams(params);
-  };
-
+  
   useEffect(() => {
     const userInfo = localStorage.getItem("userInfo");
     if (userInfo) {
@@ -25,6 +19,7 @@ export const AppProvider = ({ children }) => {
 
   const saveUserInfo = (userInfo) => {
     localStorage.setItem("userInfo", JSON.stringify(userInfo));
+    setIsAdmin(userInfo?.role === "admin");
     setUserInfo(userInfo);
     setIsUserAuthenticated(true);
   };
@@ -55,7 +50,7 @@ export const AppProvider = ({ children }) => {
       if (response.status === 401) {
         const resBody = await response.json();
 
-        if (resBody?.message === "invalid_token" && refreshToken) {
+        if (resBody?.message === "jwt expired" && refreshToken) {
           try {
             const refreshRes = await fetch(`${RFP_API_URL}/auth/refresh`, {
               method: "POST",
@@ -106,9 +101,7 @@ export const AppProvider = ({ children }) => {
   return (
     <AppContext.Provider
       value={{
-        activeTab,
-        tabParams,
-        setActiveTab,
+        isAdmin,
         isUserAuthenticated,
         setIsUserAuthenticated,
         userInfo,

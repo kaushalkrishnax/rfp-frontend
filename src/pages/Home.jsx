@@ -1,12 +1,12 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, MapPin } from "lucide-react";
-import AppContext from "../context/AppContext"; // Adjust path
-import BottomNav from "../layout/BottomNav"; // Adjust path
+import { useNavigate } from "react-router-dom";
 
 const RFP_API_URL = import.meta.env.VITE_RFP_API_URL;
 
 const Home = () => {
-  const { setActiveTab } = useContext(AppContext);
+  const navigate = useNavigate();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [topItems, setTopItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -80,9 +80,7 @@ const Home = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch(
-          `${RFP_API_URL}/menu/items`
-        );
+        const response = await fetch(`${RFP_API_URL}/menu/items`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -100,7 +98,7 @@ const Home = () => {
   }, []);
 
   const openItemInMenu = (categoryId, itemId) => {
-    setActiveTab("Menu", { categoryId, itemId });
+    navigate("/menu", { state: { categoryId, itemId } });
   };
 
   return (
@@ -112,7 +110,7 @@ const Home = () => {
               <MapPin size={18} className="text-black" />
             </span>
             <span className="font-medium truncate w-full max-w-3/4 text-sm text-gray-700 dark:text-gray-300">
-              Harichak - Banwaripur Road (851120) {/* Example Address */}
+              Harichak - Banwaripur Road (851120)
             </span>
           </div>
           <div
@@ -239,7 +237,6 @@ const Home = () => {
           )}
         </div>
       </div>
-      <BottomNav />
     </div>
   );
 };

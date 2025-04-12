@@ -39,8 +39,8 @@ export const useMenu = () => {
   return context;
 };
 
-export const MenuProvider = ({ children, isAdmin = false }) => {
-  const { rfpFetch, tabParams, userInfo, setActiveTab } =
+export const MenuProvider = ({ children, isAdmin, routeParams }) => {
+  const { rfpFetch, userInfo } =
     useContext(AppContext);
 
   const [menuData, setMenuData] = useState([]);
@@ -194,6 +194,15 @@ export const MenuProvider = ({ children, isAdmin = false }) => {
     setSelectedVariants((prev) => ({ ...prev, [itemId]: variantIndex }));
   }, []);
 
+  const handleQuantityChange = useCallback((itemId, newQuantity) => {
+    if (newQuantity < 1) return;
+  
+    setSelectedItems((prev) => ({
+      ...prev,
+      [itemId]: newQuantity,
+    }));
+  }, []);
+
   const resetCart = useCallback(() => {
     setSelectedItems({});
     setSelectedVariants({});
@@ -210,20 +219,23 @@ export const MenuProvider = ({ children, isAdmin = false }) => {
         cat.items.forEach((item) => allItemsMap.set(item.id, item));
       }
     });
-
+  
     Object.keys(selectedItems).forEach((itemId) => {
       const item = allItemsMap.get(itemId);
-      if (item) {
-        items.push(item);
-
+      const quantity = selectedItems[itemId];
+  
+      if (item && quantity > 0) {
+        items.push({ ...item, quantity });
+  
         const variantIndex = selectedVariants[item.id] ?? 0;
-        const price = parseFloat(item.variants?.[variantIndex]?.price);
-        amount += price;
+        const price = parseFloat(item.variants?.[variantIndex]?.price || 0);
+  
+        amount += price * quantity;
       }
     });
-
+  
     return { items, amount };
-  }, [menuData, selectedItems, selectedVariants]);
+  }, [menuData, selectedItems, selectedVariants]);  
 
   const refreshData = useCallback(
     async (affectedCategoryId = null) => {
@@ -437,8 +449,9 @@ export const MenuProvider = ({ children, isAdmin = false }) => {
     fetchCategories();
   }, [fetchCategories]);
 
+
   useEffect(() => {
-    let { categoryId, itemId } = tabParams || {};
+    let { categoryId, itemId } = routeParams || {};
     if (!categoryId || loadingState.initial) return;
 
     const categoryExists = menuData.some((cat) => cat.id === categoryId);
@@ -464,7 +477,7 @@ export const MenuProvider = ({ children, isAdmin = false }) => {
     } else {
       handleScrollAndSelect();
     }
-  }, [tabParams, loadingState.initial]);
+  }, [loadingState.initial]);
 
   const value = useMemo(
     () => ({
@@ -475,7 +488,6 @@ export const MenuProvider = ({ children, isAdmin = false }) => {
       selectedItems,
       selectedVariants,
       expandedCategory,
-      tabParams,
       userInfo,
       modalState,
       clearError,
@@ -483,6 +495,7 @@ export const MenuProvider = ({ children, isAdmin = false }) => {
       registerCategoryRef,
       toggleSelectItem,
       handleVariantChange,
+      handleQuantityChange,
       resetCart,
       getCartDetails,
       addCategory,
@@ -494,7 +507,6 @@ export const MenuProvider = ({ children, isAdmin = false }) => {
       createRazorpayOrder,
       verifyRazorpayOrder,
       createCodOrder,
-      setActiveTab,
       openItemModal,
       openCategoryModal,
       openCartModal,
@@ -508,7 +520,6 @@ export const MenuProvider = ({ children, isAdmin = false }) => {
       selectedItems,
       selectedVariants,
       expandedCategory,
-      tabParams,
       userInfo,
       modalState,
       clearError,
@@ -516,6 +527,7 @@ export const MenuProvider = ({ children, isAdmin = false }) => {
       registerCategoryRef,
       toggleSelectItem,
       handleVariantChange,
+      handleQuantityChange,
       resetCart,
       getCartDetails,
       addCategory,
@@ -527,7 +539,6 @@ export const MenuProvider = ({ children, isAdmin = false }) => {
       createRazorpayOrder,
       verifyRazorpayOrder,
       createCodOrder,
-      setActiveTab,
       openItemModal,
       openCategoryModal,
       openCartModal,

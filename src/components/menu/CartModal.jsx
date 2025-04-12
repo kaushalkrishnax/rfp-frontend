@@ -6,6 +6,8 @@ import {
   ArrowLeft,
   HandCoins,
   QrCode,
+  Plus,
+  Minus,
 } from "lucide-react";
 import Modal from "../common/Modal";
 import { useMenu } from "../../context/MenuContext";
@@ -18,6 +20,7 @@ const CartModal = ({ isOpen, onClose, handleProceedOrder }) => {
     resetCart,
     toggleSelectItem,
     handleVariantChange,
+    handleQuantityChange,
     loadingState,
   } = useMenu();
 
@@ -47,55 +50,78 @@ const CartModal = ({ isOpen, onClose, handleProceedOrder }) => {
 
   const formatPrice = (price) => `₹${parseFloat(price)}`;
 
-  const renderItemPrice = (item) => {
-    if (!item.variants || item.variants.length === 0) return formatPrice(0);
-    const variantIndex = selectedVariants[item.id] ?? 0;
-    const variant = item.variants[variantIndex];
-    return formatPrice(variant?.price);
-  };
-
   const CartItemsList = () => (
-    <div className="divide-y divide-gray-300 dark:divide-gray-700 max-h-[calc(60vh-100px)] overflow-y-auto px-1 -mr-1">
+    <div className="space-y-3 px-1">
       {cartData.items.map((item) => {
         const variantIndex = selectedVariants[item.id] ?? 0;
         const selectedVariant = item.variants?.[variantIndex];
+        const quantity = Number(selectedItems[item.id]) || 1;
+
         return (
           <div
             key={item.id}
-            className="py-3 flex justify-between items-start gap-2"
+            className="bg-gray-100 dark:bg-gray-800 rounded-xl px-3 py-3 flex justify-between items-start gap-3 shadow-sm"
           >
+            {/* Left section */}
             <div className="flex-1">
-              <p className="font-medium text-sm text-black dark:text-white mb-1">
-                {item.name}
-              </p>
+              <div className="flex items-center justify-between mb-1">
+                <p className="font-semibold text-sm text-black dark:text-white">
+                  {item.name}
+                </p>
+              </div>
 
               {item.variants && item.variants.length > 1 && (
-                <div className="flex mt-1.5 gap-1.5 flex-wrap">
+                <div className="flex flex-wrap gap-2 mt-1">
                   {item.variants.map((variant, index) => (
                     <button
                       key={`${item.id}-${variant.name}-${index}`}
                       onClick={() => handleVariantChange(item.id, index)}
                       className={`px-2 py-1 text-xs rounded-full border transition ${
                         variantIndex === index
-                          ? "bg-yellow-500 border-yellow-500 text-black font-medium shadow-sm"
-                          : "bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                          ? "bg-yellow-500 border-yellow-500 text-black font-medium shadow"
+                          : "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                       }`}
                     >
                       {variant.name}
-                      <span className="ml-1">(₹{parseFloat(variant.price)})</span>
+                      <span className="ml-1">
+                        (₹{parseFloat(variant.price)})
+                      </span>
                     </button>
                   ))}
                 </div>
               )}
+
+              <p className="mt-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-black dark:text-white">
+                  {formatPrice((selectedVariant?.price ?? 0) * quantity)}
+                </span>
+              </p>
             </div>
 
-            <div className="flex items-center flex-shrink-0">
-              <span className="font-medium text-sm text-black dark:text-white mr-1">
-                {formatPrice(selectedVariant?.price ?? 0)}
+            {/* Right section - Quantity controls */}
+            <div className="flex items-center gap-1 mt-2">
+              <button
+                onClick={() =>
+                  handleQuantityChange(item.id, Math.max(1, quantity - 1))
+                }
+                className="bg-gray-300 dark:bg-gray-600 p-1 rounded-full hover:bg-gray-400 dark:hover:bg-gray-500"
+              >
+                <Minus size={16} className="text-black dark:text-white" />
+              </button>
+
+              <span className="text-sm font-semibold text-black dark:text-white px-2">
+                {quantity}
               </span>
+
+              <button
+                onClick={() => handleQuantityChange(item.id, quantity + 1)}
+                className="bg-gray-300 dark:bg-gray-600 p-1 rounded-full hover:bg-gray-400 dark:hover:bg-gray-500"
+              >
+                <Plus size={16} className="text-black dark:text-white" />
+              </button>
               <button
                 onClick={() => toggleSelectItem(item.id)}
-                className="p-1 rounded-full text-red-500 hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition ml-1"
+                className="ml-2 text-red-500 hover:text-red-400"
                 aria-label={`Remove ${item.name} from cart`}
               >
                 <X size={16} />

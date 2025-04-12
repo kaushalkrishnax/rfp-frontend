@@ -38,12 +38,12 @@ const MenuItem = React.memo(({ item, categoryId, isHighlighted }) => {
     <div
       className={`flex justify-between items-center p-3 rounded-xl transition-colors duration-150 ${
         isAdmin
-          ? "hover:bg-gray-800/60"
+          ? "hover:bg-gray-100 dark:hover:bg-gray-800"
           : isSelected
-          ? "bg-gray-800 ring-1 ring-yellow-600 cursor-pointer"
+          ? "bg-yellow-100 dark:bg-yellow-900 ring-1 ring-yellow-600 cursor-pointer"
           : isHighlighted
-          ? "bg-gray-800 ring-1 ring-yellow-400 cursor-pointer"
-          : "hover:bg-gray-800/60 cursor-pointer"
+          ? "bg-yellow-50 dark:bg-yellow-800 ring-1 ring-yellow-400 cursor-pointer"
+          : "hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
       }`}
       onClick={handleItemClick}
       role={!isAdmin ? "button" : undefined}
@@ -54,17 +54,17 @@ const MenuItem = React.memo(({ item, categoryId, isHighlighted }) => {
         {!isAdmin && (
           <div
             className={`w-5 h-5 rounded-full border border-yellow-500 mr-3 flex-shrink-0 flex items-center justify-center ${
-              isSelected ? "bg-yellow-500" : "bg-gray-900"
+              isSelected ? "bg-yellow-500" : "bg-gray-200 dark:bg-gray-700"
             }`}
             aria-hidden="true"
           >
             {isSelected && (
-              <div className="w-2 h-2 bg-black rounded-full"></div>
+              <div className="w-2 h-2 bg-white dark:bg-black rounded-full"></div>
             )}
           </div>
         )}
         <span
-          className="text-base font-medium text-white truncate"
+          className="text-base font-medium text-gray-900 dark:text-white truncate"
           title={item.name}
         >
           {item.name}
@@ -72,7 +72,7 @@ const MenuItem = React.memo(({ item, categoryId, isHighlighted }) => {
       </div>
 
       <div className="flex items-center flex-shrink-0 space-x-2">
-        <span className="font-semibold text-yellow-500 text-sm md:text-base">
+        <span className="font-semibold text-yellow-600 dark:text-yellow-400 text-sm md:text-base">
           {item.variants?.length > 0 ? (
             item.variants.map((v, i) => (
               <React.Fragment key={`${item.id}-${v.name}-${i}`}>
@@ -92,7 +92,7 @@ const MenuItem = React.memo(({ item, categoryId, isHighlighted }) => {
             <button
               title="Edit Item"
               onClick={handleEditClick}
-              className="text-gray-400 hover:text-white p-1.5 hover:bg-gray-700 rounded-full transition disabled:opacity-50"
+              className="text-gray-500 dark:text-gray-300 hover:text-black dark:hover:text-white p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition disabled:opacity-50"
               disabled={isBusy}
               aria-label={`Edit item ${item.name}`}
             >
@@ -101,7 +101,7 @@ const MenuItem = React.memo(({ item, categoryId, isHighlighted }) => {
             <button
               title="Delete Item"
               onClick={handleDeleteClick}
-              className="text-red-500 hover:text-red-400 p-1.5 hover:bg-gray-700 rounded-full transition disabled:opacity-50"
+              className="text-red-500 hover:text-red-400 p-1.5 hover:bg-red-100 dark:hover:bg-red-900 rounded-full transition disabled:opacity-50"
               disabled={isBusy}
               aria-label={`Delete item ${item.name}`}
             >
@@ -127,7 +127,7 @@ const MenuCategory = React.memo(({ category, registerCategoryRef }) => {
   } = useMenu();
 
   const isExpanded = expandedCategory === category.id;
-  const isLoadingItems = loadingState.items && expandedCategory === category.id;
+  const isLoadingItems = loadingState.items && isExpanded;
   const isBusy = loadingState.initial || loadingState.saving;
 
   const handleHeaderClick = () => {
@@ -151,7 +151,7 @@ const MenuCategory = React.memo(({ category, registerCategoryRef }) => {
   return (
     <div
       ref={(el) => registerCategoryRef(category.id, el)}
-      className="bg-gray-900 rounded-2xl overflow-hidden shadow-md transition-all duration-300 ease-in-out"
+      className="bg-gray-50 dark:bg-gray-900 rounded-2xl overflow-hidden shadow-md transition-all duration-300 ease-in-out"
     >
       <div
         className="relative cursor-pointer group"
@@ -188,7 +188,7 @@ const MenuCategory = React.memo(({ category, registerCategoryRef }) => {
                 <button
                   title="Edit Category"
                   onClick={handleEditCategoryClick}
-                  className="bg-gray-800/80 p-2 rounded-full hover:bg-yellow-500 hover:text-black text-white transition disabled:opacity-50 backdrop-blur-sm"
+                  className="bg-gray-200 dark:bg-gray-800 p-2 rounded-full hover:bg-yellow-500 text-black dark:text-white transition disabled:opacity-50 backdrop-blur-sm"
                   disabled={isBusy}
                   aria-label={`Edit category ${category.name}`}
                 >
@@ -197,7 +197,7 @@ const MenuCategory = React.memo(({ category, registerCategoryRef }) => {
                 <button
                   title="Delete Category"
                   onClick={handleDeleteCategoryClick}
-                  className="bg-red-700/80 p-2 rounded-full hover:bg-red-500 text-white transition disabled:opacity-50 backdrop-blur-sm"
+                  className="bg-red-200 dark:bg-red-800 p-2 rounded-full hover:bg-red-500 text-black dark:text-white transition disabled:opacity-50 backdrop-blur-sm"
                   disabled={isBusy}
                   aria-label={`Delete category ${category.name}`}
                 >
@@ -207,12 +207,12 @@ const MenuCategory = React.memo(({ category, registerCategoryRef }) => {
             )}
             <div
               title={isExpanded ? "Collapse" : "Expand"}
-              className={`bg-gray-800/80 p-2 rounded-full text-white backdrop-blur-sm transition-all duration-300 ${
+              className={`bg-gray-200 dark:bg-gray-700 p-2 rounded-full text-black dark:text-white backdrop-blur-sm transition-all duration-300 ${
                 isExpanded && !isLoadingItems ? "rotate-90" : ""
               }`}
             >
               {isLoadingItems ? (
-                <Loader2 size={16} className="animate-spin text-yellow-400" />
+                <Loader2 size={16} className="animate-spin text-yellow-500" />
               ) : (
                 <ChevronRight size={16} />
               )}
@@ -220,6 +220,7 @@ const MenuCategory = React.memo(({ category, registerCategoryRef }) => {
           </div>
         </div>
       </div>
+
       <div
         id={`category-content-${category.id}`}
         className={`transition-all duration-300 ease-in-out overflow-hidden ${
@@ -232,13 +233,12 @@ const MenuCategory = React.memo(({ category, registerCategoryRef }) => {
               {[...Array(2)].map((_, index) => (
                 <div
                   key={index}
-                  className="h-14 rounded-xl bg-gray-800 animate-pulse w-full"
+                  className="h-14 rounded-xl bg-gray-200 dark:bg-gray-800 animate-pulse w-full"
                 ></div>
               ))}
             </div>
           )}
 
-          {/* Render Items */}
           {isExpanded &&
             !isLoadingItems &&
             category.items?.map((item) => (
@@ -250,7 +250,6 @@ const MenuCategory = React.memo(({ category, registerCategoryRef }) => {
               />
             ))}
 
-          {/* No Items Message */}
           {isExpanded &&
             !isLoadingItems &&
             (!category.items || category.items.length === 0) && (
@@ -262,7 +261,7 @@ const MenuCategory = React.memo(({ category, registerCategoryRef }) => {
           {isExpanded && isAdmin && !isLoadingItems && (
             <button
               onClick={handleAddItemClick}
-              className="flex items-center justify-center w-full p-2.5 text-yellow-500 hover:text-yellow-400 bg-gray-800/60 hover:bg-gray-700/80 rounded-xl mt-3 transition disabled:opacity-50 text-sm font-medium"
+              className="flex items-center justify-center w-full p-2.5 text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-xl mt-3 transition disabled:opacity-50 text-sm font-medium"
               disabled={isBusy}
             >
               <Plus size={16} className="mr-1.5" /> Add New Item
@@ -283,7 +282,7 @@ const MenuCategories = ({ registerCategoryRef }) => {
         {[...Array(3)].map((_, i) => (
           <div
             key={i}
-            className="bg-gray-900 rounded-2xl h-48 animate-pulse"
+            className="bg-gray-100 dark:bg-gray-800 rounded-2xl h-48 animate-pulse"
           ></div>
         ))}
       </div>
@@ -303,12 +302,12 @@ const MenuCategories = ({ registerCategoryRef }) => {
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="mx-auto mb-3 text-gray-600"
+          className="mx-auto mb-3 text-gray-600 dark:text-gray-400"
         >
           <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
           <path d="M7 11h10v2H7zm0-4h10v2H7zm5 8h0" />
         </svg>
-        <h3 className="text-lg font-medium text-gray-400 dark:text-gray-300">
+        <h3 className="text-lg font-medium text-gray-600 dark:text-gray-300">
           No Menu Categories Found
         </h3>
         {isAdmin && (

@@ -1,16 +1,18 @@
 import { useContext, useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import AppContext from "./context/AppContext";
+
 import Home from "./pages/Home";
 import Menu from "./pages/Menu";
 import Orders from "./pages/Orders";
-import Checkout from "./pages/Checkout";
-import BottomNav from "./layout/BottomNav";
 import Profile from "./pages/Profile";
 import LoadingScreen from "./components/LoadingScreen";
 import FinalizeAuth from "./components/FinalizeAuth";
+import BottomNav from "./layout/BottomNav";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 function App() {
-  const { activeTab, isUserAuthenticated } = useContext(AppContext);
+  const { isUserAuthenticated } = useContext(AppContext);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -21,30 +23,28 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  const TabComponents = {
-    Home,
-    Menu,
-    Checkout,
-    Orders,
-    Profile,
-    FinalizeAuth,
-  };
-
-  const ActivePage = TabComponents[activeTab] || Home;
-
   if (isLoading) {
     return <LoadingScreen />;
   }
 
-  if (!isUserAuthenticated) {
-    return <FinalizeAuth />;
-  }
-
   return (
-    <>
-      <ActivePage />
-      <BottomNav />
-    </>
+    <Router>
+      {!isUserAuthenticated ? (
+        <FinalizeAuth />
+      ) : (
+        <>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/menu" element={<Menu />} />
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+          <BottomNav />
+        </>
+      )}
+    </Router>
   );
 }
 

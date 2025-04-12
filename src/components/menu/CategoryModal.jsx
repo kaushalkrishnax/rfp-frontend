@@ -10,30 +10,28 @@ const CategoryModal = ({ isOpen, onClose, modalData, onSave, isLoading }) => {
 
   const [name, setName] = useState("");
   const [imageUrl, setImageUrl] = useState(DEFAULT_IMAGE);
-  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     if (isOpen && modalData) {
       setName(category?.name || "");
       setImageUrl(category?.image || DEFAULT_IMAGE);
-      setImageError(false);
     } else if (!isOpen) {
       setName("");
-      setImageUrl(DEFAULT_IMAGE);
-      setImageError(false);
+      setImageUrl("");
     }
   }, [modalData, isOpen, category]);
 
   const handleSaveClick = async () => {
     const trimmedName = name.trim();
+    const trimmedImage = imageUrl.trim();
+
     if (!trimmedName) {
       alert("Category name cannot be empty");
       return;
     }
 
-    const finalImageUrl = imageUrl?.trim() ? imageUrl.trim() : DEFAULT_IMAGE;
-
     try {
+      const finalImageUrl = trimmedImage || DEFAULT_IMAGE;
       if (isNew) {
         await onSave(trimmedName, finalImageUrl);
       } else {
@@ -44,12 +42,7 @@ const CategoryModal = ({ isOpen, onClose, modalData, onSave, isLoading }) => {
     }
   };
 
-  const handleImageError = () => {
-    if (imageUrl !== DEFAULT_IMAGE) {
-      setImageUrl(DEFAULT_IMAGE);
-    }
-    setImageError(true);
-  };
+  const previewImage = imageUrl.trim() || DEFAULT_IMAGE;
 
   const footerContent = (
     <div className="flex space-x-3">
@@ -85,7 +78,6 @@ const CategoryModal = ({ isOpen, onClose, modalData, onSave, isLoading }) => {
       isLoading={isLoading}
     >
       <div className="space-y-5">
-        {/* Category Name Input */}
         <div>
           <label
             htmlFor="categoryName"
@@ -105,7 +97,6 @@ const CategoryModal = ({ isOpen, onClose, modalData, onSave, isLoading }) => {
           />
         </div>
 
-        {/* Image URL Input */}
         <div>
           <label
             htmlFor="imageUrl"
@@ -116,31 +107,20 @@ const CategoryModal = ({ isOpen, onClose, modalData, onSave, isLoading }) => {
           <input
             id="imageUrl"
             type="text"
-            value={imageUrl === DEFAULT_IMAGE ? "" : imageUrl}
-            onChange={(e) => setImageUrl(e.target.value || DEFAULT_IMAGE)}
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
             placeholder="Enter image URL (optional)"
             className="w-full bg-gray-100 dark:bg-gray-800 text-black dark:text-white px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 focus:outline-none transition text-sm"
             disabled={isLoading}
           />
-          {/* Image Preview */}
           <div className="mt-3 relative aspect-[2/1] bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-300 dark:border-gray-700">
             <img
-              key={imageUrl}
-              src={imageError ? DEFAULT_IMAGE : imageUrl}
+              key={previewImage}
+              src={previewImage}
               alt="Category Preview"
-              onError={handleImageError}
               className="w-full h-full object-cover"
               loading="lazy"
             />
-            {imageError && imageUrl !== DEFAULT_IMAGE && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                <p className="text-white text-xs text-center p-2">
-                  Image failed to load.
-                  <br />
-                  Using default.
-                </p>
-              </div>
-            )}
           </div>
         </div>
       </div>

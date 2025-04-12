@@ -43,7 +43,8 @@ const FinalizeAuth = () => {
     }
   };
 
-  const handleSendOtp = async () => {
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
     if (phoneNumber.length !== 10) {
       alert("Please enter a valid 10-digit phone number");
       return;
@@ -67,7 +68,8 @@ const FinalizeAuth = () => {
     }
   };
 
-  const handleVerifyOtp = async () => {
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
     const otpValue = otp.join("");
     if (otpValue.length !== 4) {
       alert("Please enter a valid 4-digit OTP");
@@ -82,23 +84,26 @@ const FinalizeAuth = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(
-        `${RFP_API_URL}/auth/finalize`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            full_name: isSignup ? fullName : null,
-            phone: phoneNumber,
-            otp: otpValue,
-          }),
-        }
-      );
+      const response = await fetch(`${RFP_API_URL}/auth/finalize`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          full_name: isSignup ? fullName : null,
+          phone: phoneNumber,
+          otp: otpValue,
+        }),
+      });
 
-      const { id, full_name, phone, refresh_token, access_token } =
-        await response.json().then((data) => data.data);
+      const data = await response.json();
+
+      if (!data.success) {
+        alert(data.message);
+        return;
+      }
+
+      const { id, full_name, phone, refresh_token, access_token } = data.data;
 
       saveUserInfo({
         id,
@@ -139,7 +144,7 @@ const FinalizeAuth = () => {
         {/* Auth Content */}
         {!showOtpScreen ? (
           /* Phone number screen */
-          <div className="space-y-6 animate-fade">
+          <form onSubmit={handleSendOtp} className="space-y-6 animate-fade">
             <h2 className="text-xl font-semibold text-center">Sign In</h2>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
@@ -162,8 +167,8 @@ const FinalizeAuth = () => {
             </div>
 
             <button
-              className="w-full bg-red-600 dark:bg-red-500 text-white py-3 rounded-lg flex items-center justify-center hover:bg-red-700 dark:hover:bg-red-600 transition"
-              onClick={handleSendOtp}
+              className="w-full bg-red-600 dark:bg-red-500 text-white h-12 rounded-lg flex items-center justify-center hover:bg-red-700 dark:hover:bg-red-600 transition"
+              type="submit"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -176,10 +181,10 @@ const FinalizeAuth = () => {
                 "Send OTP"
               )}
             </button>
-          </div>
+          </form>
         ) : (
           /* OTP verification screen */
-          <div className="space-y-6 animate-fade">
+          <form onSubmit={handleVerifyOtp} className="space-y-6 animate-fade">
             <h2 className="text-xl font-semibold text-center">
               Verify Your Number
             </h2>
@@ -211,12 +216,14 @@ const FinalizeAuth = () => {
               <button
                 className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition"
                 onClick={() => setShowOtpScreen(false)}
+                type="button"
               >
                 Change Number
               </button>
               <button
                 className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition"
                 onClick={handleSendOtp}
+                type="button"
                 disabled={isLoading}
               >
                 Resend OTP
@@ -239,8 +246,8 @@ const FinalizeAuth = () => {
             )}
 
             <button
-              className="w-full bg-red-600 dark:bg-red-500 text-white py-3 rounded-lg flex items-center justify-center hover:bg-red-700 dark:hover:bg-red-600 transition"
-              onClick={handleVerifyOtp}
+              className="w-full bg-red-600 dark:bg-red-500 text-white h-12 rounded-lg flex items-center justify-center hover:bg-red-700 dark:hover:bg-red-600 transition"
+              type="submit"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -253,7 +260,7 @@ const FinalizeAuth = () => {
                 "Verify & Continue"
               )}
             </button>
-          </div>
+          </form>
         )}
 
         {/* Developer Credits */}
