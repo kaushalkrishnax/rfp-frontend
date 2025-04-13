@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { Search, MapPin } from "lucide-react";
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-
-const RFP_API_URL = import.meta.env.VITE_RFP_API_URL;
+import { Search, MapPin } from "lucide-react";
+import AppContext from "../context/AppContext";
 
 const Home = () => {
   const navigate = useNavigate();
+
+  const { rfpFetch } = useContext(AppContext);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [topItems, setTopItems] = useState([]);
@@ -80,12 +81,8 @@ const Home = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${RFP_API_URL}/menu/items`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        setTopItems(data?.data || []);
+        const response = await rfpFetch("/menu/items");
+        setTopItems(response.data || []);
       } catch (err) {
         console.error("Failed to fetch top items:", err);
         setError("Could not load items. Please try again later.");

@@ -126,60 +126,6 @@ const StatusTabs = ({ status, setStatus }) => (
   </div>
 );
 
-const OrderTimeline = ({ status }) => {
-  if (status === "cancelled") return null;
-  const timeline = getStatusFromTimeline(status);
-  const steps = ["pending", "processing", "delivered"];
-
-  return (
-    <div className="flex justify-between items-center my-3 relative">
-      {steps.map((step) => {
-        const isCompleted = timeline.completed?.includes(step);
-        const isCurrent = timeline.completed?.slice(-1)[0] === step;
-        return (
-          <div key={step} className="flex flex-col items-center z-10 flex-1">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                isCompleted
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
-              } ${
-                isCurrent ? "ring-4 ring-blue-100 dark:ring-blue-900/30" : ""
-              }`}
-            >
-              {step === "pending" && <Clock size={16} />}
-              {step === "processing" && <Truck size={16} />}
-              {step === "delivered" && <CheckCircle size={16} />}
-            </div>
-            <span
-              className={`text-xs mt-1 font-medium ${
-                isCompleted
-                  ? "text-blue-600 dark:text-blue-400"
-                  : "text-gray-500 dark:text-gray-400"
-              }`}
-            >
-              {step.charAt(0).toUpperCase() + step.slice(1)}
-            </span>
-          </div>
-        );
-      })}
-      <div className="absolute top-4 left-0 h-0.5 bg-gray-200 dark:bg-gray-800 w-full -z-0">
-        <div
-          className={`h-0.5 bg-blue-500 transition-all duration-500 ease-in-out ${
-            status === "pending"
-              ? "w-0"
-              : status === "processing"
-              ? "w-1/2"
-              : status === "delivered"
-              ? "w-full"
-              : "w-0"
-          }`}
-        />
-      </div>
-    </div>
-  );
-};
-
 const OrderItemsList = ({ items }) => (
   <div className="mt-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
     {items.map((item, idx) => (
@@ -199,7 +145,8 @@ const OrderItemsList = ({ items }) => (
                 </span>
               )}
               <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
-                {item.quantity ? `Qty: ${item.quantity}` : "0"}
+                {/* TODO: fix quantity later */}
+                {typeof item.quantity === "number" ? `Qty: ${item.quantity}` : ""} 
               </span>
             </div>
           </div>
@@ -329,7 +276,6 @@ const OrderDetails = ({
 }) => (
   <div className="px-4 pb-4">
     <div className="pt-2 border-t border-gray-100 dark:border-gray-700 animate-fadeIn">
-      <OrderTimeline status={order.status} />
       <OrderItemsList items={order.items} />
       <OrderSummary
         paymentMethod={order.payment_method}
@@ -552,8 +498,8 @@ const Orders = () => {
       setLoading(true);
       const currentOffset = loadMore ? offset : 0;
       const endpoint = isAdmin
-        ? `/admin/orders?status=${currentStatus}&offset=${currentOffset}`
-        : `/orders?status=${currentStatus}&offset=${currentOffset}`;
+        ? `/orders/admin?status=${currentStatus}&offset=${currentOffset}`
+        : `/orders/user?status=${currentStatus}&offset=${currentOffset}`;
 
       try {
         const response = await rfpFetch(endpoint);
