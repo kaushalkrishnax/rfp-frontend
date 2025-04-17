@@ -127,7 +127,7 @@ const OrderItemsList = ({ items }) => (
             </p>
             <div className="flex gap-2 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {item.variant && (
-                <span className="py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
+                <span className="py-0.5 bg-gray-100 dark:bg-gray-800 rounded">  
                   Variant: {item.variant.name}
                 </span>
               )}
