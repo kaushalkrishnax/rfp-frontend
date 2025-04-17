@@ -1,4 +1,5 @@
 import fs from "fs";
+import path from "path";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -15,3 +16,4 @@ const injected = template
   .replace("__MEASUREMENT_ID__", process.env.VITE_FIREBASE_MEASUREMENT_ID);
 
 fs.writeFileSync("public/firebase-messaging-sw.js", injected);
+console.log("✅ firebase-messaging-sw.js generated!");
