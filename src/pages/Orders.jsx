@@ -132,7 +132,7 @@ const OrderItemsList = ({ items }) => (
                 </span>
               )}
               <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
-                {item.quantity === "number" && `Qty: ${item.quantity}`}
+                {item.quantity && `Qty: ${item.quantity}`}
               </span>
             </div>
           </div>
@@ -140,7 +140,7 @@ const OrderItemsList = ({ items }) => (
         <div className="text-right">
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
             ₹{item.variant.price}{" "}
-            {item.quantity === "number" && `× ${item.quantity}`}
+            {item.quantity && `× ${item.quantity}`}
           </p>
           <p className="text-base font-semibold text-gray-900 dark:text-gray-100 mt-1">
             ₹{item.variant.price * item.quantity}
@@ -332,7 +332,7 @@ const OrderCard = ({
             <div>
               <div className="flex items-center">
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-                  Order #{order.id.slice(0, 8)}
+                  #{order.id.slice(0, 8)}
                 </h3>
                 <span className="ml-2 px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs text-gray-600 dark:text-gray-300">
                   {order.items.length} item{order.items.length !== 1 && "s"}
