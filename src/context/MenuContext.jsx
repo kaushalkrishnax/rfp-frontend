@@ -60,10 +60,8 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
   const categoryRefs = useRef({});
 
   const clearError = useCallback(() => setError(null), []);
-  const closeModal = useCallback(
-    () => setModalState({ type: MODAL_TYPES.NONE, data: null }),
-    []
-  );
+  const closeModal = useCallback(() => 
+    setModalState({ type: MODAL_TYPES.NONE, data: null }), []);
 
   const executeApiCall = useCallback(
     async (apiFunc, loadingKey = "saving", ...args) => {
@@ -79,7 +77,6 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
           err?.message ||
           "An unexpected error occurred.";
         setError(message);
-
         alert(`Operation failed: ${message}`);
         throw err;
       } finally {
@@ -171,26 +168,37 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
     else delete categoryRefs.current[id];
   }, []);
 
+  // Fixed version of toggleSelectItem that properly manages variants
   const toggleSelectItem = useCallback((itemId) => {
     setSelectedItems((prev) => {
       const newSelection = { ...prev };
       if (newSelection[itemId]) {
         delete newSelection[itemId];
-
+        
+        // Also remove variant selection when deselecting item
         setSelectedVariants((v) => {
           const newV = { ...v };
           delete newV[itemId];
           return newV;
         });
       } else {
-        newSelection[itemId] = true;
+        newSelection[itemId] = 1; // Default to quantity of 1
+        
+        // Set default variant when selecting an item
+        setSelectedVariants((prev) => ({
+          ...prev,
+          [itemId]: 0 // Default to first variant
+        }));
       }
       return newSelection;
     });
   }, []);
 
   const handleVariantChange = useCallback((itemId, variantIndex) => {
-    setSelectedVariants((prev) => ({ ...prev, [itemId]: variantIndex }));
+    setSelectedVariants((prev) => ({
+      ...prev,
+      [itemId]: variantIndex
+    }));
   }, []);
 
   const handleQuantityChange = useCallback((itemId, newQuantity) => {
@@ -225,10 +233,23 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
       const quantity = selectedItems[itemId];
 
       if (item && quantity > 0) {
-        items.push({ ...item, quantity });
-
         const variantIndex = selectedVariants[item.id] ?? 0;
-        const price = parseFloat(item.variants?.[variantIndex]?.price || 0);
+        const variantObj = item.variants?.[variantIndex] || {};
+        
+        // Only include name and price in the variant info
+        const variant = {
+          name: variantObj.name || "",
+          price: variantObj.price || 0
+        };
+        
+        const price = parseFloat(variant.price);
+        
+        // Add the item with simplified variant info
+        items.push({ 
+          ...item, 
+          quantity,
+          variant // Only include the selected variant with name and price
+        });
 
         amount += price * quantity;
       }
@@ -297,13 +318,18 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
         if (deletedCat?.items) {
           setSelectedItems((prevSelected) => {
             const newSelection = { ...prevSelected };
-            const newVariants = { ...selectedVariants };
             deletedCat.items.forEach((item) => {
               delete newSelection[item.id];
+            });
+            return newSelection;
+          });
+          
+          setSelectedVariants((prevVariants) => {
+            const newVariants = { ...prevVariants };
+            deletedCat.items.forEach((item) => {
               delete newVariants[item.id];
             });
-            setSelectedVariants(newVariants);
-            return newSelection;
+            return newVariants;
           });
         }
 
@@ -312,11 +338,10 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
         }
       } catch (error) {
         console.error("Failed to delete category:", error);
-
         await refreshData();
       }
     },
-    [executeApiCall, menuData, expandedCategory, selectedVariants]
+    [executeApiCall, menuData, expandedCategory]
   );
 
   const addItem = useCallback(
@@ -353,6 +378,7 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
           delete newSelection[itemId];
           return newSelection;
         });
+        
         setSelectedVariants((prev) => {
           const newVariants = { ...prev };
           delete newVariants[itemId];
@@ -362,7 +388,6 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
         await refreshData(categoryId);
       } catch (error) {
         console.error("Failed to delete item:", error);
-
         await refreshData(categoryId);
       }
     },
@@ -424,7 +449,7 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
       );
       return response;
     },
-    [executeApiCall, userInfo, selectedVariants]
+    [executeApiCall, userInfo]
   );
 
   const createCodOrder = useCallback(
@@ -442,9 +467,10 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
       );
       return response;
     },
-    [executeApiCall, userInfo, selectedVariants]
+    [executeApiCall, userInfo]
   );
 
+  // Handle initial route params and category/item selection
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
@@ -476,7 +502,7 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
     } else {
       handleScrollAndSelect();
     }
-  }, [loadingState.initial]);
+  }, [loadingState.initial, menuData, routeParams, expandedCategory, fetchItemsForCategory, toggleSelectItem]);
 
   const value = useMemo(
     () => ({
@@ -547,3 +573,5 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
 
   return <MenuContext.Provider value={value}>{children}</MenuContext.Provider>;
 };
+
+export default MenuContext;

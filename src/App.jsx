@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import AppContext from "./context/AppContext";
 
@@ -11,20 +11,9 @@ import FinalizeAuth from "./pages/FinalizeAuth";
 import BottomNav from "./layout/BottomNav";
 
 function App() {
-  const { isUserAuthenticated } = useContext(AppContext);
-  const [isLoading, setIsLoading] = useState(true);
+  const { isUserAuthenticated, isAppLoading } = useContext(AppContext);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
+  if (isAppLoading) return <LoadingScreen />;
 
   return (
     <Router>

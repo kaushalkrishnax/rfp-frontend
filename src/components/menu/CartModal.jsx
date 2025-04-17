@@ -26,6 +26,7 @@ const CartModal = ({ isOpen, onClose, handleProceedOrder }) => {
 
   const [isCheckoutView, setIsCheckoutView] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("razorpay");
+  const deliveryCharge = 40;
 
   const isProcessingOrder = loadingState.order;
 
@@ -33,6 +34,9 @@ const CartModal = ({ isOpen, onClose, handleProceedOrder }) => {
     if (!isOpen) return { items: [], amount: 0 };
     return getCartDetails();
   }, [isOpen, selectedItems, selectedVariants, getCartDetails]);
+
+  const totalWithDelivery =
+    cartData.amount + (cartData.items.length > 0 ? deliveryCharge : 0);
 
   useEffect(() => {
     if (!isOpen) {
@@ -42,7 +46,11 @@ const CartModal = ({ isOpen, onClose, handleProceedOrder }) => {
 
   const handleConfirmOrder = async () => {
     try {
-      await handleProceedOrder(paymentMethod, cartData.items, cartData.amount);
+      await handleProceedOrder(
+        paymentMethod,
+        cartData.items,
+        totalWithDelivery
+      );
     } catch (error) {
       console.error("Order confirmation failed (handled by context)");
     }
@@ -157,12 +165,28 @@ const CartModal = ({ isOpen, onClose, handleProceedOrder }) => {
   const CheckoutOptions = () => (
     <div className="space-y-4 px-1">
       <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-gray-700 dark:text-gray-300 text-sm">
+            Subtotal
+          </span>
+          <span className="text-black dark:text-white font-medium text-sm">
+            {formatPrice(cartData.amount)}
+          </span>
+        </div>
+        <div className="flex justify-between items-center border-t border-gray-200 dark:border-gray-700 pt-2 mb-2">
+          <span className="text-gray-700 dark:text-gray-300 text-sm">
+            Delivery Charge
+          </span>
+          <span className="text-black dark:text-white font-medium text-sm">
+            {formatPrice(deliveryCharge)}
+          </span>
+        </div>
+        <div className="flex justify-between items-center border-t border-gray-200 dark:border-gray-700 pt-2">
           <span className="text-black dark:text-white font-semibold text-sm">
             Order Total
           </span>
           <span className="text-yellow-500 font-bold text-base">
-            {formatPrice(cartData.amount)}
+            {formatPrice(totalWithDelivery)}
           </span>
         </div>
       </div>
@@ -208,14 +232,32 @@ const CartModal = ({ isOpen, onClose, handleProceedOrder }) => {
       return (
         <div className="space-y-3">
           {hasItems && (
-            <div className="flex justify-between px-1">
-              <span className="text-gray-500 dark:text-gray-400 text-sm">
-                Subtotal ({cartData.items.length} item
-                {cartData.items.length !== 1 ? "s" : ""})
-              </span>
-              <span className="font-bold text-base text-yellow-500">
-                {formatPrice(cartData.amount)}
-              </span>
+            <div className="flex flex-col px-1">
+              <div className="flex justify-between">
+                <span className="text-gray-500 dark:text-gray-400 text-sm">
+                  Subtotal ({cartData.items.length} item
+                  {cartData.items.length !== 1 ? "s" : ""})
+                </span>
+                <span className="font-medium text-sm text-black dark:text-white">
+                  {formatPrice(cartData.amount)}
+                </span>
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-gray-500 dark:text-gray-400 text-sm">
+                  Delivery Charge
+                </span>
+                <span className="font-medium text-sm text-black dark:text-white">
+                  {formatPrice(deliveryCharge)}
+                </span>
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-gray-700 dark:text-gray-300 text-sm font-medium">
+                  Total
+                </span>
+                <span className="font-bold text-base text-yellow-500">
+                  {formatPrice(totalWithDelivery)}
+                </span>
+              </div>
             </div>
           )}
           <div
@@ -261,7 +303,7 @@ const CartModal = ({ isOpen, onClose, handleProceedOrder }) => {
             {isProcessingOrder ? (
               <Loader2 className="animate-spin h-5 w-5" />
             ) : (
-              `Pay ${formatPrice(cartData.amount)}`
+              `Pay ${formatPrice(totalWithDelivery)}`
             )}
           </button>
         </div>

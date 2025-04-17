@@ -8,7 +8,6 @@ import {
   ChevronDown,
   ChevronUp,
   Package,
-  Check,
   X,
   Truck,
   Calendar,
@@ -68,17 +67,6 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString(undefined, options);
 };
 
-const getStatusFromTimeline = (status) => {
-  const timeline = ["pending", "processing", "delivered"];
-  if (status === "cancelled") return {};
-  const currentIndex = timeline.indexOf(status);
-  if (currentIndex === -1) return {};
-  return {
-    completed: timeline.slice(0, currentIndex + 1),
-    pending: timeline.slice(currentIndex + 1),
-  };
-};
-
 // --- Sub-components ---
 
 const OrdersHeader = ({ navigate, isAdmin }) => (
@@ -94,13 +82,12 @@ const OrdersHeader = ({ navigate, isAdmin }) => (
         {isAdmin ? "Manage Orders" : "My Orders"}
       </h1>
     </div>
-    {/* Filter button removed */}
   </div>
 );
 
 const StatusTabs = ({ status, setStatus }) => (
   <div className="mb-6 overflow-x-auto -mx-4 px-4">
-    <div className="flex space-x-1 bg-white dark:bg-gray-900 rounded-xl p-1 shadow-sm border border-gray-200 dark:border-gray-700">
+    <div className="flex space-x-1 bg-white dark:bg-gray-900 rounded-xl p-1 shadow-sm border border-gray-200 dark:border-gray-700 overflow-x-auto">
       {["all", "pending", "processing", "delivered", "cancelled"].map((s) => {
         const statusInfo = getStatusInfo(s !== "all" ? s : "pending");
         return (
@@ -140,23 +127,23 @@ const OrderItemsList = ({ items }) => (
             </p>
             <div className="flex gap-2 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {item.variant && (
-                <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
-                  {item.variant}
+                <span className="py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
+                  Variant: {item.variant.name}
                 </span>
               )}
               <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
-                {/* TODO: fix quantity later */}
-                {typeof item.quantity === "number" ? `Qty: ${item.quantity}` : ""} 
+                {item.quantity === "number" && `Qty: ${item.quantity}`}
               </span>
             </div>
           </div>
         </div>
         <div className="text-right">
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            ₹{item.variants[0].price} × {item.quantity}
+            ₹{item.variant.price}{" "}
+            {item.quantity === "number" && `× ${item.quantity}`}
           </p>
           <p className="text-base font-semibold text-gray-900 dark:text-gray-100 mt-1">
-            ₹{item.variants[0].price * item.quantity}
+            ₹{item.variant.price * item.quantity}
           </p>
         </div>
       </div>
@@ -186,6 +173,14 @@ const OrderSummary = ({ paymentMethod, paymentStatus, amount }) => (
           }`}
         >
           {paymentStatus === "success" ? "Paid" : "Pending"}
+        </span>
+      </div>
+      <div className="flex justify-between items-center text-sm">
+        <span className="text-gray-500 dark:text-gray-400">
+          Delivery Charge
+        </span>
+        <span className="font-medium text-gray-900 dark:text-gray-100">
+          ₹40
         </span>
       </div>
       <div className="border-t border-gray-200 dark:border-gray-600 my-2"></div>
@@ -399,25 +394,6 @@ const OrderCard = ({
           <span>{isExpanded ? "Hide Details" : "View Details"}</span>
           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
-        {isAdmin && !isExpanded && order.status === "pending" && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleUpdateOrderStatus(order.id, "processing");
-            }}
-            disabled={actionLoading[order.id]}
-            className="flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 rounded text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 disabled:opacity-50 transition-all"
-          >
-            {actionLoading[order.id] === "processing" ? (
-              <span>Processing...</span>
-            ) : (
-              <>
-                <Check size={12} />
-                <span>Process</span>
-              </>
-            )}
-          </button>
-        )}
       </div>
     </div>
   );
@@ -462,17 +438,6 @@ const LoadMoreButton = ({ loading, onClick }) => (
       ) : (
         <span>Load More Orders</span>
       )}
-    </button>
-  </div>
-);
-
-const AdminFAB = ({ navigate }) => (
-  <div className="fixed bottom-6 right-6 z-50">
-    <button
-      onClick={() => navigate("/admin/dashboard")}
-      className="w-14 h-14 rounded-full bg-blue-500 shadow-lg flex items-center justify-center text-white hover:bg-blue-600 transition-all ring-4 ring-white dark:ring-gray-950"
-    >
-      <ChevronLeft size={24} />
     </button>
   </div>
 );
@@ -532,7 +497,6 @@ const Orders = () => {
             parsed.forEach((order) => {
               if (order.id === order_id) newExpanded[order.id] = true;
             });
-            console.log(order_id);
             setExpanded(newExpanded);
           } else {
             setExpanded({});
@@ -570,7 +534,7 @@ const Orders = () => {
 
     setActionLoading((prev) => ({ ...prev, [orderId]: newStatus }));
     try {
-      await rfpFetch(`/admin/orders/update/${orderId}`, {
+      await rfpFetch(`/orders/update/${orderId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
@@ -623,8 +587,6 @@ const Orders = () => {
             onClick={loadMoreOrders}
           />
         )}
-
-        {isAdmin && <AdminFAB navigate={navigate} />}
       </div>
     </div>
   );

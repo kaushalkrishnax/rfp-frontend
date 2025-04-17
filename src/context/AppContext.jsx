@@ -1,41 +1,111 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useEffect, useState } from "react";
+import { onAuthStateChanged, getIdToken, signOut } from "firebase/auth";
+import { auth } from "../firebase";
+import { getMessaging, getToken } from "firebase/messaging";
 
 const AppContext = createContext();
-
 const RFP_API_URL = import.meta.env.VITE_RFP_API_URL;
 
 export const AppProvider = ({ children }) => {
-  const [isAdmin, setIsAdmin] = useState(true);
-  const [userInfo, setUserInfo] = useState(null);
   const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAppLoading, setIsAppLoading] = useState(true);
 
   useEffect(() => {
-    const userInfo = localStorage.getItem("userInfo");
-    if (userInfo) {
-      setUserInfo(JSON.parse(userInfo));
+    const stored = localStorage.getItem("userInfo");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      setUserInfo(parsed);
       setIsUserAuthenticated(true);
+      setIsAdmin(parsed?.role === "admin");
     }
+
+    const MINIMUM_LOAD_TIME = 3000;
+    const startTime = Date.now();
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      const elapsed = Date.now() - startTime;
+      const delay = Math.max(0, MINIMUM_LOAD_TIME - elapsed);
+
+      setTimeout(async () => {
+        if (firebaseUser) {
+          try {
+            const idToken = await getIdToken(firebaseUser);
+            const res = await fetch(`${RFP_API_URL}/auth/finalize`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ idToken }),
+            });
+
+            const data = await res.json();
+            if (data?.data) {
+              saveUserInfo(data.data);
+              await storeFcmToken(data.data);
+            }
+          } catch (err) {
+            console.error("FinalizeAuth Error:", err);
+          }
+        } else if (!firebaseUser && isUserAuthenticated) {
+          deleteUserInfo();
+        }
+
+        setIsAppLoading(false);
+      }, delay);
+    });
+
+    const storeFcmToken = async (userData) => {
+      console.log("[1] storeFcmToken called");
+
+      try {
+        const messaging = getMessaging();
+        const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+        const fcmToken = await getToken(messaging, { vapidKey });
+
+        const response = await fetch(`${RFP_API_URL}/auth/fcm`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${userData.access_token}`,
+          },
+          body: JSON.stringify({ fcm_token: fcmToken }),
+        });
+
+        const data = await response.json();
+
+        if (data?.data) {
+          console.log("[8] Saving user info with FCM token");
+          saveUserInfo({ ...userData, fcm_token: fcmToken });
+        }
+      } catch (err) {
+        console.warn("❌ storeFcmToken error:", err);
+      }
+    };
+
+    return () => unsubscribe();
   }, []);
 
-  const saveUserInfo = (userInfo) => {
-    localStorage.setItem("userInfo", JSON.stringify(userInfo));
-    setIsAdmin(userInfo?.role === "admin");
-    setUserInfo(userInfo);
+  const saveUserInfo = (info) => {
+    localStorage.setItem("userInfo", JSON.stringify(info));
+    setUserInfo(info);
     setIsUserAuthenticated(true);
+    setIsAdmin(info?.role === "admin");
   };
 
-  const deleteUserInfo = () => {
+  const deleteUserInfo = async () => {
+    await signOut(auth);
+
     localStorage.removeItem("userInfo");
-    localStorage.removeItem("access_token");
     setUserInfo(null);
     setIsUserAuthenticated(false);
+    setIsAdmin(false);
   };
 
   const rfpFetch = async (endpoint, options = {}) => {
     const accessToken = userInfo?.access_token;
     const refreshToken = userInfo?.refresh_token;
 
-    const headers = {
+    let headers = {
       "Content-Type": "application/json",
       ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
       ...options.headers,
@@ -48,63 +118,56 @@ export const AppProvider = ({ children }) => {
       });
 
       if (response.status === 401) {
-        const resBody = await response.json();
-
-        if (resBody?.message === "jwt expired" && refreshToken) {
+        const body = await response.json();
+        if (body?.message === "jwt expired" && refreshToken) {
           try {
             const refreshRes = await fetch(`${RFP_API_URL}/auth/refresh`, {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ refresh_token: refreshToken }),
             });
 
-            const refreshData = await refreshRes
-              .json()
-              .then((data) => data.data || {});
+            const refreshData = await refreshRes.json();
+            const newAccessToken = refreshData?.data?.access_token;
 
-            if (refreshRes.ok && refreshData?.access_token) {
-              const newUserInfo = {
+            if (refreshRes.ok && newAccessToken) {
+              const newUser = {
                 ...userInfo,
-                access_token: refreshData.access_token,
+                access_token: newAccessToken,
               };
-              saveUserInfo(newUserInfo);
-
-              const retryHeaders = {
-                ...headers,
-                Authorization: `Bearer ${refreshData.access_token}`,
-              };
+              saveUserInfo(newUser);
 
               return await fetch(`${RFP_API_URL}${endpoint}`, {
                 ...options,
-                headers: retryHeaders,
-              });
+                headers: {
+                  ...headers,
+                  Authorization: `Bearer ${newAccessToken}`,
+                },
+              }).then((r) => r.json());
             }
-          } catch (refreshError) {
-            console.error("Token refresh failed:", refreshError);
+          } catch (err) {
+            console.error("Token refresh failed", err);
           }
         }
 
         deleteUserInfo();
-        window.location.reload();
         return null;
       }
 
       return response.json();
-    } catch (error) {
-      console.error("rfpFetch error:", error);
-      throw error;
+    } catch (err) {
+      console.error("rfpFetch error:", err);
+      throw err;
     }
   };
 
   return (
     <AppContext.Provider
       value={{
-        isAdmin,
         isUserAuthenticated,
-        setIsUserAuthenticated,
+        isAdmin,
         userInfo,
+        isAppLoading,
         saveUserInfo,
         deleteUserInfo,
         rfpFetch,
