@@ -1,20 +1,20 @@
-// src/firebase/sw.template.js
+/* eslint-disable no-undef */
 
-self.importScripts(
+importScripts(
   "https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"
 );
-self.importScripts(
+importScripts(
   "https://www.gstatic.com/firebasejs/10.9.0/firebase-messaging-compat.js"
 );
 
 firebase.initializeApp({
-  apiKey: "__API_KEY__",
-  authDomain: "__AUTH_DOMAIN__",
-  projectId: "__PROJECT_ID__",
-  storageBucket: "__STORAGE_BUCKET__",
-  messagingSenderId: "__MESSAGING_SENDER_ID__",
-  appId: "__APP_ID__",
-  measurementId: "__MEASUREMENT_ID__",
+  apiKey: "AIzaSyD1xfHJ-rtaBIhiZOTEPEpjOexMxTzLYSs",
+  authDomain: "rfp-app-3cd65.firebaseapp.com",
+  projectId: "rfp-app-3cd65",
+  storageBucket: "rfp-app-3cd65.firebasestorage.app",
+  messagingSenderId: "79090394208",
+  appId: "1:79090394208:web:fcf63bfa980cd8a88c4f05",
+  measurementId: "G-Q3B3K1W69C",
 });
 
 const messaging = firebase.messaging();
@@ -23,6 +23,7 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload?.notification?.title || "New Notification";
   const notificationOptions = {
     body: payload?.notification?.body,
+    icon: payload?.notification?.image || "/apple-touch-icon.png",
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
