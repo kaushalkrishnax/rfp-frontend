@@ -18,13 +18,6 @@ import BottomNav from "./layout/BottomNav";
 function App() {
   const { isUserAuthenticated, isAppLoading } = useContext(AppContext);
 
-  navigator.serviceWorker.addEventListener("message", (event) => {
-    if (event.data?.type === "ORDER_NOTIFICATION") {
-      const { order_id } = event.data;
-      window.location.href = `/orders?order_id=${order_id}&fromNotification=true`;
-    }
-  });
-
   if (isAppLoading) return <LoadingScreen />;
 
   return (
