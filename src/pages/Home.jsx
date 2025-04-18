@@ -95,7 +95,7 @@ const Home = () => {
   }, []);
 
   const openItemInMenu = (categoryId, itemId) => {
-    navigate("/menu", { state: { categoryId, itemId } });
+    navigate(`/menu?categoryId=${categoryId}&itemId=${itemId}`);
   };
 
   return (

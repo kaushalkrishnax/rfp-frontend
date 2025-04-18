@@ -20,11 +20,31 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const notificationTitle = payload?.notification?.title || "New Notification";
+  const notificationTitle = payload.data.title;
   const notificationOptions = {
-    body: payload?.notification?.body,
-    icon: payload?.notification?.image || "/apple-touch-icon.png",
+    body: payload.data.body,
+    image: payload.data.image,
+    icon: "/apple-touch-icon.png",
+    data: payload.data,
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+
+  const data = event.notification.data || {};
+  const clickAction = data.click_action || "/";
+  const order_id = data.order_id;
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then(() => {
+      let finalUrl = "/";
+      if (clickAction === "OPEN_ORDER_DETAIL" && order_id) {
+        finalUrl = `/orders&order_id=${order_id}`;
+      }
+      clients.openWindow(finalUrl);
+    })
+  );
 });

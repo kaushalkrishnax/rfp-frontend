@@ -127,7 +127,7 @@ const OrderItemsList = ({ items }) => (
             </p>
             <div className="flex gap-2 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {item.variant && (
-                <span className="py-0.5 bg-gray-100 dark:bg-gray-800 rounded">  
+                <span className="py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
                   Variant: {item.variant.name}
                 </span>
               )}
@@ -139,8 +139,7 @@ const OrderItemsList = ({ items }) => (
         </div>
         <div className="text-right">
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            ₹{item.variant.price}{" "}
-            {item.quantity && `× ${item.quantity}`}
+            ₹{item.variant.price} {item.quantity && `× ${item.quantity}`}
           </p>
           <p className="text-base font-semibold text-gray-900 dark:text-gray-100 mt-1">
             ₹{item.variant.price * item.quantity}
@@ -447,8 +446,11 @@ const LoadMoreButton = ({ loading, onClick }) => (
 const Orders = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { order_id = "" } = location.state || {};
   const { isAdmin, rfpFetch } = useContext(AppContext);
+
+  const { search } = location;
+  const urlParams = new URLSearchParams(search);
+  const order_id = urlParams.get("order_id") || "";
 
   const [orders, setOrders] = useState([]);
   const [status, setStatus] = useState("all");

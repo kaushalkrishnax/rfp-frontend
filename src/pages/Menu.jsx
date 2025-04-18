@@ -95,9 +95,7 @@ const MenuContent = () => {
                   );
                   resetCart();
                   closeModal();
-                  navigate("/orders", {
-                    state: { order_id: verificationResult?.data?.id },
-                  });
+                  navigate(`/orders?order_id=${verificationResult?.data?.id}`);
                 } else {
                   alert(
                     `Order verification failed: ${
@@ -189,7 +187,7 @@ const MenuContent = () => {
             alert(`COD Order placed successfully! Total: ₹${total}`);
             resetCart();
             closeModal();
-            navigate("/orders", { state: { order_id: response?.data?.id } });
+            navigate(`/orders?order_id=${response?.data?.id}`);
           } else {
             throw new Error(response?.message || "Failed to place COD order.");
           }
@@ -310,6 +308,10 @@ const Menu = () => {
 
   const location = useLocation();
 
+  const searchParams = new URLSearchParams(location.search);
+  const categoryId = searchParams.get("categoryId") || "";
+  const itemId = searchParams.get("itemId") || "";
+
   if (!rfpFetch) {
     return (
       <div className="min-h-screen bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-900 dark:text-gray-100">
@@ -319,7 +321,7 @@ const Menu = () => {
   }
 
   return (
-    <MenuProvider isAdmin={isAdmin} routeParams={location.state}>
+    <MenuProvider isAdmin={isAdmin} routeParams={{ categoryId, itemId }}>
       <MenuContent />
     </MenuProvider>
   );
