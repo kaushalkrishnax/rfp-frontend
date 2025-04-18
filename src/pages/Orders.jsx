@@ -13,6 +13,7 @@ import {
   Calendar,
   CreditCard,
   ShoppingBag,
+  Box,
 } from "lucide-react";
 import AppContext from "../context/AppContext";
 
@@ -195,6 +196,28 @@ const OrderSummary = ({ paymentMethod, paymentStatus, amount }) => (
   </div>
 );
 
+const CustomerInfo = ({ customer }) => (
+  <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+    <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
+      Customer Info
+    </h4>
+    <div className="space-y-2">
+      <div className="flex justify-between items-center text-sm">
+        <span className="text-gray-500 dark:text-gray-400">Phone</span>
+        <span className="font-medium text-gray-900 dark:text-gray-100">
+          {customer.phone}
+        </span>
+      </div>
+      <div className="flex justify-between items-center text-sm">
+        <span className="text-gray-500 dark:text-gray-400">Location</span>
+        <span className="font-medium text-gray-900 dark:text-gray-100">
+          {customer.location}
+        </span>
+      </div>
+    </div>
+  </div>
+);
+
 const AdminOrderControls = ({
   orderId,
   status,
@@ -277,12 +300,15 @@ const OrderDetails = ({
         amount={order.amount}
       />
       {isAdmin && (
-        <AdminOrderControls
-          orderId={order.id}
-          status={order.status}
-          handleUpdateOrderStatus={handleUpdateOrderStatus}
-          actionLoading={actionLoading}
-        />
+        <>
+          <CustomerInfo customer={order.customer} />
+          <AdminOrderControls
+            orderId={order.id}
+            status={order.status}
+            handleUpdateOrderStatus={handleUpdateOrderStatus}
+            actionLoading={actionLoading}
+          />
+        </>
       )}
     </div>
   </div>
@@ -333,11 +359,14 @@ const OrderCard = ({
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100">
                   #{order.id.slice(0, 8)}
                 </h3>
-                <span className="ml-2 px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs text-gray-600 dark:text-gray-300">
-                  {order.items.length} item{order.items.length !== 1 && "s"}
-                </span>
               </div>
               <div className="flex items-center gap-3 mt-1.5">
+                <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                  <Box size={12} />
+                  <span>
+                    {order.items.length} item{order.items.length !== 1 && "s"}
+                  </span>
+                </div>
                 <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                   <Calendar size={12} />
                   <span>{formatDate(order.created_at)}</span>

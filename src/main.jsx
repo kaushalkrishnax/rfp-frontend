@@ -16,8 +16,8 @@ navigator.serviceWorker.addEventListener("message", (event) => {
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker
     .register("/firebase-messaging-sw.js")
-    .then((registration) => {
-      console.log("Service Worker registered successfully", registration);
+    .then(() => {
+      console.log("Service Worker registered successfully");
     })
     .catch((error) => {
       console.error("Service Worker registration failed", error);
@@ -38,7 +38,7 @@ onMessage(messaging, (payload) => {
   if (Notification.permission === "granted") {
     new Notification(notificationTitle, notificationOptions);
   }
-});
+}); 
 
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();

@@ -55,8 +55,6 @@ export const AppProvider = ({ children }) => {
     });
 
     const storeFcmToken = async (userData) => {
-      console.log("[1] storeFcmToken called");
-
       try {
         const messaging = getMessaging();
         const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
@@ -74,7 +72,6 @@ export const AppProvider = ({ children }) => {
         const data = await response.json();
 
         if (data?.data) {
-          console.log("[8] Saving user info with FCM token");
           saveUserInfo({ ...userData, fcm_token: fcmToken });
         }
       } catch (err) {

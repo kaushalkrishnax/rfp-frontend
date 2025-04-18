@@ -1,5 +1,11 @@
 import { useContext } from "react";
-import { ArrowRight, Settings, MessageSquare, LogOut, User } from "lucide-react";
+import {
+  ArrowRight,
+  Settings,
+  MessageSquare,
+  LogOut,
+  User,
+} from "lucide-react";
 import AppContext from "../context/AppContext";
 import { useNavigate } from "react-router-dom";
 
@@ -9,9 +15,14 @@ export default function Profile() {
 
   function MenuItem({ icon, color, title, onClick }) {
     return (
-      <div className="flex items-center justify-between cursor-pointer p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all" onClick={onClick}>
+      <div
+        className="flex items-center justify-between cursor-pointer p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+        onClick={onClick}
+      >
         <div className="flex items-center">
-          <div className={`h-10 w-10 ${color} rounded-full flex items-center justify-center mr-4 shadow-md`}>
+          <div
+            className={`h-10 w-10 ${color} rounded-full flex items-center justify-center mr-4 shadow-md`}
+          >
             {icon}
           </div>
           <span className="font-medium dark:text-gray-100">{title}</span>
@@ -41,23 +52,19 @@ export default function Profile() {
 
       <div className="flex flex-col items-center mt-4 mb-8 relative">
         <div className="h-24 w-24 rounded-full overflow-hidden mb-4 border-2 border-blue-500 dark:border-blue-400 shadow-lg">
-          {userInfo?.profile_image ? (
-            <img
-              src={userInfo.profile_image}
-              alt="Profile"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="h-full w-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-              <User size={48} className="text-gray-500 dark:text-gray-400" />
-            </div>
-          )}
+          <img
+            src="https://img.freepik.com/premium-psd/contact-icon-illustration-isolated_23-2151903357.jpg"
+            alt="Profile"
+            className="h-full w-full object-cover"
+          />
         </div>
 
         <p className="text-2xl font-bold dark:text-white">
           {userInfo?.phone || "No phone added"}
         </p>
-        <p className="text-gray-600 dark:text-gray-400">{userInfo?.email || "No email added"}</p>
+        <p className="text-gray-600 dark:text-gray-400">
+          {userInfo?.email || "No email added"}
+        </p>
       </div>
 
       <div className="mx-4 my-6 h-px bg-gray-200 dark:bg-gray-700"></div>
