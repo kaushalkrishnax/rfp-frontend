@@ -98,7 +98,7 @@ const MenuItemModal = ({ isOpen, onClose, modalData, onSave, isLoading }) => {
       <button
         onClick={onClose}
         disabled={isLoading}
-        className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-black dark:text-white py-2.5 px-4 rounded-xl transition disabled:opacity-50 text-sm font-medium"
+        className="flex-1 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-black dark:text-white py-2.5 px-4 rounded-xl transition disabled:opacity-50 text-sm font-medium"
       >
         Cancel
       </button>

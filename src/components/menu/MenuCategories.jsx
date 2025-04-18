@@ -54,7 +54,7 @@ const MenuItem = React.memo(({ item, categoryId, isHighlighted }) => {
         {!isAdmin && (
           <div
             className={`w-5 h-5 rounded-full border border-yellow-500 mr-3 flex-shrink-0 flex items-center justify-center ${
-              isSelected ? "bg-yellow-500" : "bg-gray-200 dark:bg-gray-700"
+              isSelected ? "bg-yellow-500" : "bg-gray-200 dark:bg-gray-800"
             }`}
             aria-hidden="true"
           >
@@ -92,7 +92,7 @@ const MenuItem = React.memo(({ item, categoryId, isHighlighted }) => {
             <button
               title="Edit Item"
               onClick={handleEditClick}
-              className="text-gray-500 dark:text-gray-300 hover:text-black dark:hover:text-white p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition disabled:opacity-50"
+              className="text-gray-500 dark:text-gray-300 hover:text-black dark:hover:text-white p-1.5 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition disabled:opacity-50"
               disabled={isBusy}
               aria-label={`Edit item ${item.name}`}
             >
@@ -207,7 +207,7 @@ const MenuCategory = React.memo(({ category, registerCategoryRef }) => {
             )}
             <div
               title={isExpanded ? "Collapse" : "Expand"}
-              className={`bg-gray-200 dark:bg-gray-700 p-2 rounded-full text-black dark:text-white backdrop-blur-sm transition-all duration-300 ${
+              className={`bg-gray-200 dark:bg-gray-800 p-2 rounded-full text-black dark:text-white backdrop-blur-sm transition-all duration-300 ${
                 isExpanded && !isLoadingItems ? "rotate-90" : ""
               }`}
             >
@@ -261,7 +261,7 @@ const MenuCategory = React.memo(({ category, registerCategoryRef }) => {
           {isExpanded && isAdmin && !isLoadingItems && (
             <button
               onClick={handleAddItemClick}
-              className="flex items-center justify-center w-full p-2.5 text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-xl mt-3 transition disabled:opacity-50 text-sm font-medium"
+              className="flex items-center justify-center w-full p-2.5 text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-800 rounded-xl mt-3 transition disabled:opacity-50 text-sm font-medium"
               disabled={isBusy}
             >
               <Plus size={16} className="mr-1.5" /> Add New Item

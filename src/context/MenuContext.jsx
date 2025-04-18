@@ -58,10 +58,14 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
     data: null,
   });
   const categoryRefs = useRef({});
+  // Added to track if a category was manually expanded
+  const manuallyExpanded = useRef(false);
 
   const clearError = useCallback(() => setError(null), []);
-  const closeModal = useCallback(() => 
-    setModalState({ type: MODAL_TYPES.NONE, data: null }), []);
+  const closeModal = useCallback(
+    () => setModalState({ type: MODAL_TYPES.NONE, data: null }),
+    []
+  );
 
   const executeApiCall = useCallback(
     async (apiFunc, loadingKey = "saving", ...args) => {
@@ -95,7 +99,7 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
         throw new Error("Invalid category data format received.");
       }
       setMenuData(categories.map((cat) => ({ ...cat, items: undefined })));
-      setExpandedCategory(null);
+      // We don't reset expandedCategory here anymore since we want to respect manual selections
     } catch (err) {
       setMenuData([]);
     } finally {
@@ -154,6 +158,9 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
 
   const toggleCategoryExpansion = useCallback(
     (categoryId) => {
+      // Set the manual expansion flag to true
+      manuallyExpanded.current = true;
+
       if (expandedCategory === categoryId) {
         setExpandedCategory(null);
       } else {
@@ -168,26 +175,23 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
     else delete categoryRefs.current[id];
   }, []);
 
-  // Fixed version of toggleSelectItem that properly manages variants
   const toggleSelectItem = useCallback((itemId) => {
     setSelectedItems((prev) => {
       const newSelection = { ...prev };
       if (newSelection[itemId]) {
         delete newSelection[itemId];
-        
-        // Also remove variant selection when deselecting item
+
         setSelectedVariants((v) => {
           const newV = { ...v };
           delete newV[itemId];
           return newV;
         });
       } else {
-        newSelection[itemId] = 1; // Default to quantity of 1
-        
-        // Set default variant when selecting an item
+        newSelection[itemId] = 1;
+
         setSelectedVariants((prev) => ({
           ...prev,
-          [itemId]: 0 // Default to first variant
+          [itemId]: 0,
         }));
       }
       return newSelection;
@@ -197,7 +201,7 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
   const handleVariantChange = useCallback((itemId, variantIndex) => {
     setSelectedVariants((prev) => ({
       ...prev,
-      [itemId]: variantIndex
+      [itemId]: variantIndex,
     }));
   }, []);
 
@@ -235,20 +239,18 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
       if (item && quantity > 0) {
         const variantIndex = selectedVariants[item.id] ?? 0;
         const variantObj = item.variants?.[variantIndex] || {};
-        
-        // Only include name and price in the variant info
+
         const variant = {
           name: variantObj.name || "",
-          price: variantObj.price || 0
+          price: variantObj.price || 0,
         };
-        
+
         const price = parseFloat(variant.price);
-        
-        // Add the item with simplified variant info
-        items.push({ 
-          ...item, 
+
+        items.push({
+          ...item,
           quantity,
-          variant // Only include the selected variant with name and price
+          variant,
         });
 
         amount += price * quantity;
@@ -323,7 +325,7 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
             });
             return newSelection;
           });
-          
+
           setSelectedVariants((prevVariants) => {
             const newVariants = { ...prevVariants };
             deletedCat.items.forEach((item) => {
@@ -378,7 +380,7 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
           delete newSelection[itemId];
           return newSelection;
         });
-        
+
         setSelectedVariants((prev) => {
           const newVariants = { ...prev };
           delete newVariants[itemId];
@@ -470,12 +472,17 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
     [executeApiCall, userInfo]
   );
 
-  // Handle initial route params and category/item selection
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
 
+  // Modified useEffect to respect manual category expansions
   useEffect(() => {
+    // Skip this effect if it's a manual expansion
+    if (manuallyExpanded.current) {
+      return;
+    }
+
     let { categoryId, itemId } = routeParams || {};
     if (!categoryId || loadingState.initial) return;
 
@@ -502,7 +509,14 @@ export const MenuProvider = ({ children, isAdmin, routeParams }) => {
     } else {
       handleScrollAndSelect();
     }
-  }, [loadingState.initial, menuData, routeParams, expandedCategory, fetchItemsForCategory, toggleSelectItem]);
+  }, [
+    loadingState.initial,
+    menuData,
+    routeParams,
+    expandedCategory,
+    fetchItemsForCategory,
+    toggleSelectItem,
+  ]);
 
   const value = useMemo(
     () => ({

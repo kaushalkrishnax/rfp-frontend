@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, MapPin, Navigation, ChevronRight } from "lucide-react";
+import { MapPin, Navigation } from "lucide-react";
 import AppContext from "../context/AppContext";
 import Modal from "../components/common/Modal";
 
@@ -8,7 +8,6 @@ const Home = () => {
   const navigate = useNavigate();
   const { rfpFetch, userInfo, saveUserInfo } = useContext(AppContext);
 
-  const [searchQuery, setSearchQuery] = useState("");
   const [topItems, setTopItems] = useState([]);
   const [popularItems, setPopularItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,9 +50,7 @@ const Home = () => {
         setPopularItems(response.data || []);
       } catch (err) {
         console.error("Failed to fetch popular items:", err);
-        setPopularError(
-          "Could not load popular items. Please try again later."
-        );
+        setPopularError("Could not load popular items. Please try again later.");
         setPopularItems([]);
       } finally {
         setIsPopularLoading(false);
@@ -91,47 +88,33 @@ const Home = () => {
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-            {
-              headers: {
-                "User-Agent": "Royal Food Plaza App",
-              },
-            }
+            { headers: { "User-Agent": "Royal Food Plaza App" } }
           );
 
-          if (!response.ok) {
-            throw new Error("Failed to get address");
-          }
+          if (!response.ok) throw new Error("Failed to get address");
 
           const data = await response.json();
           const address = data.display_name || "Unknown location";
 
           setDetectedLocation(address);
           setManualLocation(address);
-          setIsGettingLocation(false);
         } catch (error) {
-          console.error("Error getting location:", error);
-          setLocationError(
-            "Could not detect your location. Please try again or enter manually."
-          );
+          setLocationError("Could not detect your location. Please try again or enter manually.");
+        } finally {
           setIsGettingLocation(false);
         }
       },
       (error) => {
-        console.error("Geolocation error:", error);
         let errorMessage = "Failed to get your location.";
-
         if (error.code === 1) {
-          errorMessage =
-            "Location access denied. Please enable location access in your browser settings.";
+          errorMessage = "Location access denied. Please enable location access in your browser settings.";
         } else if (error.code === 2) {
           errorMessage = "Location unavailable. Please try again later.";
         } else if (error.code === 3) {
           errorMessage = "Location request timed out. Please try again.";
         }
-
         setLocationError(errorMessage);
         setIsGettingLocation(false);
       }
@@ -154,10 +137,8 @@ const Home = () => {
 
       setUserLocation(manualLocation);
       saveUserInfo({ ...userInfo, location: manualLocation });
-
       setIsLocationModalOpen(false);
     } catch (error) {
-      console.error("Failed to update location:", error);
       setLocationError("Failed to save location. Please try again.");
     } finally {
       setIsSavingLocation(false);
@@ -176,23 +157,22 @@ const Home = () => {
       }
       return "Price unavailable";
     } catch (err) {
-      console.error("Error parsing variants:", err);
       return "Price unavailable";
     }
   };
 
   const PopularItemSkeleton = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md w-64 flex-shrink-0">
-      <div className="w-full h-32 bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+    <div className="bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-md w-64 flex-shrink-0">
+      <div className="w-full h-32 bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
       <div className="p-3">
         <div className="flex justify-between items-start mb-1">
-          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4 animate-pulse"></div>
-          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-8 animate-pulse"></div>
+          <div className="h-5 bg-gray-200 dark:bg-gray-800 rounded w-3/4 animate-pulse"></div>
+          <div className="h-5 bg-gray-200 dark:bg-gray-800 rounded w-8 animate-pulse"></div>
         </div>
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mt-2 mb-2 animate-pulse"></div>
+        <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/2 mt-2 mb-2 animate-pulse"></div>
         <div className="flex justify-between items-center mt-3">
-          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse"></div>
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded-full w-20 animate-pulse"></div>
+          <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-16 animate-pulse"></div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-800 rounded-full w-20 animate-pulse"></div>
         </div>
       </div>
     </div>
@@ -200,13 +180,13 @@ const Home = () => {
 
   const CategoryItemSkeleton = () => (
     <div className="flex flex-col items-center text-center">
-      <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse mb-1"></div>
-      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 mt-1 animate-pulse"></div>
+      <div className="w-16 h-16 bg-gray-200 dark:bg-gray-900 rounded-full animate-pulse mb-1"></div>
+      <div className="h-4 bg-gray-200 dark:bg-gray-900 rounded w-16 mt-1 animate-pulse"></div>
     </div>
   );
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-800 dark:text-gray-200 pb-16">
+    <div className="bg-gray-50 dark:bg-gray-950 min-h-screen text-gray-800 dark:text-gray-200 pb-16">
       {/* Header Section */}
       <div className="fixed flex justify-between items-center w-full p-4 bg-gray-100 dark:bg-gray-900 z-10">
         <div
@@ -231,7 +211,7 @@ const Home = () => {
           </button>
         </div>
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center border-1 border-blue-500 dark:border-blue-400  cursor-pointer"
+          className="w-10 h-10 rounded-full flex items-center justify-center border-1 border-blue-500 dark:border-blue-400 cursor-pointer"
           onClick={() => navigate("/profile")}
           aria-label="Open Profile"
         >
@@ -269,7 +249,7 @@ const Home = () => {
           )}
 
           {!isPopularLoading && !popularError && popularItems.length === 0 && (
-            <div className="bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 p-4 rounded-lg text-center">
+            <div className="bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 p-4 rounded-lg text-center">
               No popular items found.
             </div>
           )}
@@ -278,16 +258,15 @@ const Home = () => {
             <div className="overflow-x-auto no-scrollbar">
               <div className="flex gap-4 w-max pb-2">
                 {popularItems.map((item) => {
-                  const variants = item.variants;
-                  const price = getItemPrice(variants);
+                  const price = getItemPrice(item.variants);
 
                   return (
                     <div
                       key={item.id}
-                      className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md w-64 flex-shrink-0 hover:shadow-lg transition-shadow cursor-pointer"
+                      className="bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-md w-64 flex-shrink-0 hover:shadow-lg transition-shadow cursor-pointer"
                       onClick={() => openItemInMenu(item.category_id, item.id)}
                     >
-                      <div className="h-32 w-full relative ">
+                      <div className="h-32 w-full relative">
                         <img
                           src={item.category_image}
                           alt={item.name}
@@ -316,9 +295,10 @@ const Home = () => {
                           </span>
                           <button
                             className="bg-yellow-400 dark:bg-yellow-500 text-black text-sm px-4 py-1.5 rounded-full font-medium hover:bg-yellow-500 dark:hover:bg-yellow-600 transition-colors"
-                            onClick={() =>
-                              openItemInMenu(item.category_id, item.id)
-                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openItemInMenu(item.category_id, item.id);
+                            }}
                           >
                             Buy
                           </button>
@@ -353,7 +333,7 @@ const Home = () => {
           )}
 
           {!isLoading && !error && topItems.length === 0 && (
-            <div className="bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 p-4 rounded-lg text-center">
+            <div className="bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 p-4 rounded-lg text-center">
               No categories found.
             </div>
           )}
@@ -372,7 +352,7 @@ const Home = () => {
                     openItemInMenu(item.category_id, item.id)
                   }
                 >
-                  <div className="w-16 h-16 bg-yellow-100 dark:bg-gray-800 rounded-full overflow-hidden flex items-center justify-center mb-1 border-2 border-transparent group-hover:border-yellow-500 transition duration-200 shadow-sm">
+                  <div className="w-16 h-16 bg-yellow-100 dark:bg-gray-900 rounded-full overflow-hidden flex items-center justify-center mb-1 border-2 border-transparent group-hover:border-yellow-500 transition duration-200 shadow-sm">
                     <img
                       src={item.category_image}
                       alt={item.name}
@@ -401,7 +381,7 @@ const Home = () => {
             <button
               onClick={() => setIsLocationModalOpen(false)}
               disabled={isSavingLocation}
-              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-medium disabled:opacity-50"
+              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors font-medium disabled:opacity-50"
             >
               Cancel
             </button>
@@ -435,13 +415,13 @@ const Home = () => {
               value={manualLocation}
               onChange={(e) => setManualLocation(e.target.value)}
               placeholder="Enter your complete address..."
-              className="w-full p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500 dark:focus:ring-yellow-600 text-gray-900 dark:text-gray-100 resize-none min-h-20"
+              className="w-full p-3 bg-gray-100 dark:bg-gray-900 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500 dark:focus:ring-yellow-600 text-gray-900 dark:text-gray-100 resize-none min-h-20"
               disabled={isSavingLocation}
             />
           </div>
 
           <div className="text-center relative">
-            <div className="absolute left-0 right-0 top-1/2 h-px bg-gray-200 dark:bg-gray-700"></div>
+            <div className="absolute left-0 right-0 top-1/2 h-px bg-gray-200 dark:bg-gray-800"></div>
             <span className="relative bg-white dark:bg-gray-900 px-4 text-sm text-gray-500 dark:text-gray-400">
               or
             </span>
@@ -450,7 +430,7 @@ const Home = () => {
           <button
             onClick={detectCurrentLocation}
             disabled={isGettingLocation}
-            className="flex items-center justify-center gap-2 p-3 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="flex items-center justify-center gap-2 p-3 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
           >
             {isGettingLocation ? (
               <>

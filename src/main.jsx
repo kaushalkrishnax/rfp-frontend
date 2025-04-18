@@ -6,13 +6,6 @@ import { AppProvider } from "./context/AppContext.jsx";
 import { getMessaging, onMessage } from "firebase/messaging";
 import app from "./firebase.js";
 
-navigator.serviceWorker.addEventListener("message", (event) => {
-  if (event.data?.type === "ORDER_NOTIFICATION") {
-    const { order_id } = event.data;
-    window.location.href = `/orders?order_id=${order_id}&fromNotification=true`;
-  }
-});
-
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker
     .register("/firebase-messaging-sw.js")
@@ -27,48 +20,17 @@ if ("serviceWorker" in navigator) {
 const messaging = getMessaging(app);
 
 onMessage(messaging, (payload) => {
-  const notificationTitle = payload.notification.title;
+  const notificationTitle = payload.data.title;
   const notificationOptions = {
-    body: payload.notification.body,
+    body: payload.data.body,
     icon: "/apple-touch-icon.png",
-    image: payload.notification.image,
+    image: payload.data.image,
     data: payload.data,
   };
 
   if (Notification.permission === "granted") {
     new Notification(notificationTitle, notificationOptions);
   }
-}); 
-
-self.addEventListener("notificationclick", function (event) {
-  event.notification.close();
-
-  const { click_action, order_id } = event.notification.data || {};
-
-  let finalUrl = "/";
-
-  if (click_action === "OPEN_ORDER_DETAIL" && order_id) {
-    finalUrl = `/orders?order_id=${order_id}&fromNotification=true`;
-  }
-
-  event.waitUntil(
-    clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((clientList) => {
-        for (const client of clientList) {
-          if ("focus" in client) {
-            client.postMessage({
-              type: "ORDER_NOTIFICATION",
-              click_action,
-              order_id,
-            });
-            return client.focus();
-          }
-        }
-
-        return clients.openWindow(finalUrl);
-      })
-  );
 });
 
 createRoot(document.getElementById("root")).render(

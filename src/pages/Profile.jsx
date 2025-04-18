@@ -16,7 +16,7 @@ export default function Profile() {
   function MenuItem({ icon, color, title, onClick }) {
     return (
       <div
-        className="flex items-center justify-between cursor-pointer p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+        className="flex items-center justify-between cursor-pointer p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 transition-all"
         onClick={onClick}
       >
         <div className="flex items-center">
@@ -38,9 +38,9 @@ export default function Profile() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 min-h-screen w-full relative font-sans text-black dark:text-white pb-20">
+    <div className="bg-white dark:bg-gray-950 min-h-screen w-full relative font-sans text-black dark:text-white pb-20">
       <div className="p-4 flex justify-between items-center">
-        <div className="bg-gray-100 dark:bg-gray-800 h-10 w-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
+        <div className="bg-gray-100 dark:bg-gray-900 h-10 w-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
           <ArrowRight
             className="h-5 w-5 rotate-180 dark:text-white"
             onClick={() => navigate("/")}
@@ -61,9 +61,6 @@ export default function Profile() {
 
         <p className="text-2xl font-bold dark:text-white">
           {userInfo?.phone || "No phone added"}
-        </p>
-        <p className="text-gray-600 dark:text-gray-400">
-          {userInfo?.email || "No email added"}
         </p>
       </div>
 
