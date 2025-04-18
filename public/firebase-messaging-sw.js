@@ -20,7 +20,6 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  console.log("Received a background message", payload);
   const notificationTitle = payload.data.title;
   const notificationOptions = {
     body: payload.data.body,
@@ -32,8 +31,22 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
+self.addEventListener("push", function (event) {
+  const payload = event.data.json();
+  const notificationTitle = payload.data.title;
+  const notificationOptions = {
+    body: payload.data.body,
+    icon: "/apple-touch-icon.png",
+    image: payload.data.image,
+    data: payload.data,
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(notificationTitle, notificationOptions)
+  );
+});
+
 self.addEventListener("notificationclick", function (event) {
-  console.log("Notification clicked", event);
   event.notification.close();
 
   const { click_action, order_id } = event.notification.data || {};
