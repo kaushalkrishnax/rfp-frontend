@@ -19,18 +19,6 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-  const notificationTitle = payload.data.title;
-  const notificationOptions = {
-    body: payload.data.body,
-    image: payload.data.image,
-    icon: "/apple-touch-icon.png",
-    data: payload.data,
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
-});
-
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
 
