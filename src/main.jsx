@@ -3,7 +3,8 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.jsx";
 import { AppProvider } from "./context/AppContext.jsx";
-import { getMessaging } from "firebase/messaging";
+import { getMessaging, onMessage } from "firebase/messaging";
+import app from "./firebase.js";
 
 navigator.serviceWorker.addEventListener("message", (event) => {
   if (event.data?.type === "ORDER_NOTIFICATION") {
