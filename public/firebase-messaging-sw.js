@@ -34,17 +34,30 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
 
-  const data = event.notification.data || {};
-  const clickAction = data.click_action || "/";
-  const order_id = data.order_id;
+  const { click_action, order_id } = event.notification.data || {};
+
+  let finalUrl = "/";
+
+  if (click_action === "OPEN_ORDER_DETAIL" && order_id) {
+    finalUrl = `/orders?order_id=${order_id}&fromNotification=true`;
+  }
 
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then(() => {
-      let finalUrl = "/";
-      if (clickAction === "OPEN_ORDER_DETAIL" && order_id) {
-        finalUrl = `/orders&order_id=${order_id}`;
-      }
-      clients.openWindow(finalUrl);
-    })
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if ("focus" in client) {
+            client.postMessage({
+              type: "ORDER_NOTIFICATION",
+              click_action,
+              order_id,
+            });
+            return client.focus();
+          }
+        }
+
+        return clients.openWindow(finalUrl);
+      })
   );
 });
