@@ -16,20 +16,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-const messaging = getMessaging(app);
-
-onMessage(messaging, (payload) => {
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: "/apple-touch-icon.png",
-    image: payload.notification.image,
-    data: payload.data,
-  };
-
-  if (Notification.permission === "granted") {
-    new Notification(notificationTitle, notificationOptions);
-  }
-});
-
 export default app;
