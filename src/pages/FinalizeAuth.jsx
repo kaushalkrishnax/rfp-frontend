@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
-import rfpLogo from "../assets/rfp.png";
-import AppContext from "../context/AppContext";
 import {
   getAuth,
   RecaptchaVerifier,
   signInWithPhoneNumber,
   getIdToken,
 } from "firebase/auth";
+import rfpLogo from "../assets/rfp.png";
+import AppContext from "../context/AppContext";
 
 const RFP_API_URL = import.meta.env.VITE_RFP_API_URL;
 
