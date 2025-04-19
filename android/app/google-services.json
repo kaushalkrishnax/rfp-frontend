@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "79090394208",
+    "project_id": "rfp-app-3cd65",
+    "storage_bucket": "rfp-app-3cd65.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:79090394208:android:dac137654872e46c8c4f05",
+        "android_client_info": {
+          "package_name": "com.rfp.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRE_54DwHKy3vKDhyAf8rJ0sbmDB_PQbQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

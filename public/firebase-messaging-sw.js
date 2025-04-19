@@ -24,7 +24,6 @@ messaging.onBackgroundMessage((payload) => {
   const notificationOptions = {
     body: payload.data.body,
     icon: "/apple-touch-icon.png",
-    image: payload.data.image,
     data: payload.data,
   };
 

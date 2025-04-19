@@ -6,6 +6,9 @@ import {
   Navigate,
 } from "react-router-dom";
 import AppContext from "./context/AppContext";
+import { Capacitor } from "@capacitor/core";
+import { SplashScreen } from "@capacitor/splash-screen";
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 import Home from "./pages/Home";
 import AdminHome from "./pages/AdminHome";
@@ -18,6 +21,14 @@ import BottomNav from "./layout/BottomNav";
 
 function App() {
   const { isUserAuthenticated, isAppLoading, isAdmin } = useContext(AppContext);
+
+
+  if (Capacitor.isNativePlatform()) {
+    StatusBar.setStyle({ style: Style.Dark });
+    StatusBar.setOverlaysWebView({ overlay: false });
+  }
+
+  SplashScreen.hide();
 
   if (isAppLoading) return <LoadingScreen />;
 
