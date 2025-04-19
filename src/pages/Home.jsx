@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Navigation } from "lucide-react";
+import { Navigation } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
+import { Geolocation } from "@capacitor/geolocation";
 import AppContext from "../context/AppContext";
 import Modal from "../components/common/Modal";
 import rfpLogo from "../assets/rfp.png";
@@ -87,29 +89,44 @@ const Home = () => {
       return;
     }
 
+    if (Capacitor.isNativePlatform()) {
+      Geolocation.requestPermissions();
+      Geolocation.getCurrentPosition()
+        .then((coordinates) => setLocation(coordinates))
+        .catch((error) => {
+          console.error("Failed to get current position:", error);
+          setLocationError("Failed to get current position");
+        })
+        .finally(() => setIsGettingLocation(false));
+    }
+
+    const setLocation = async (position) => {
+      try {
+        const { latitude, longitude } = position.coords;
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+          { headers: { "User-Agent": "Royal Food Plaza App" } }
+        );
+
+        if (!response.ok) throw new Error("Failed to get address");
+
+        const data = await response.json();
+        const address = data.display_name || "Unknown location";
+
+        setDetectedLocation(address);
+        setManualLocation(address);
+      } catch (error) {
+        setLocationError(
+          "Could not detect your location. Please try again or enter manually."
+        );
+      } finally {
+        setIsGettingLocation(false);
+      }
+    };
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-            { headers: { "User-Agent": "Royal Food Plaza App" } }
-          );
-
-          if (!response.ok) throw new Error("Failed to get address");
-
-          const data = await response.json();
-          const address = data.display_name || "Unknown location";
-
-          setDetectedLocation(address);
-          setManualLocation(address);
-        } catch (error) {
-          setLocationError(
-            "Could not detect your location. Please try again or enter manually."
-          );
-        } finally {
-          setIsGettingLocation(false);
-        }
+        await setLocation(position);
       },
       (error) => {
         let errorMessage = "Failed to get your location.";
