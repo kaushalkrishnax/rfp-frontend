@@ -68,8 +68,8 @@ const formatDate = (dateString) => {
 };
 
 const StatusTabs = ({ status, setStatus }) => (
-  <div className="overflow-x-auto sticky top-0 -mx-4 px-4 py-4 mb-4 bg-gray-100 dark:bg-gray-900">
-    <div className="flex space-x-1 bg-white dark:bg-gray-900 rounded-xl p-1 shadow-sm border border-gray-200 dark:border-gray-700 overflow-x-auto">
+  <header className="flex items-center justify-center sticky top-0 px-4 h-16 mb-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-md">
+    <div className="flex space-x-1 bg-white dark:bg-gray-900 rounded-xl p-1 shadow-sm border border-gray-200 dark:border-gray-700 overflow-x-auto max-w-3xl">
       {["all", "pending", "processing", "delivered", "cancelled"].map((s) => {
         const statusInfo = getStatusInfo(s !== "all" ? s : "pending");
         return (
@@ -79,7 +79,7 @@ const StatusTabs = ({ status, setStatus }) => (
             className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center transition-all flex-1 justify-center ${
               status === s
                 ? "bg-gray-100 dark:bg-gray-800 shadow-sm text-gray-900 dark:text-white"
-                : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
             }`}
           >
             {s !== "all" ? (
@@ -92,7 +92,7 @@ const StatusTabs = ({ status, setStatus }) => (
         );
       })}
     </div>
-  </div>
+  </header>
 );
 
 const OrderItemsList = ({ items }) => (
@@ -109,11 +109,11 @@ const OrderItemsList = ({ items }) => (
             </p>
             <div className="flex gap-2 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {item.variant && (
-                <span className="py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
-                  Variant: {item.variant.name}
+                <span className="py-0.5 bg-gray-100 dark:bg-gray-800 rounded ">
+                  {item.variant.name}
                 </span>
               )}
-              <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
+              <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded ">
                 {item.quantity && `Qty: ${item.quantity}`}
               </span>
             </div>
@@ -178,20 +178,24 @@ const OrderSummary = ({ paymentMethod, paymentStatus, amount }) => (
 );
 
 const CustomerInfo = ({ customer }) => (
-  <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-    <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
+  <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full mx-auto sm:p-6">
+    <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
       Customer Info
     </h4>
-    <div className="space-y-2">
-      <div className="flex justify-between items-center text-sm">
-        <span className="text-gray-500 dark:text-gray-400">Phone</span>
-        <span className="font-medium text-gray-900 dark:text-gray-100">
+    <div className="space-y-3">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-sm">
+        <span className="text-gray-500 dark:text-gray-400 mb-1 sm:mb-0">
+          Phone
+        </span>
+        <span className="font-medium text-gray-900 dark:text-gray-100 break-all">
           {customer.phone}
         </span>
       </div>
-      <div className="flex justify-between items-center text-sm">
-        <span className="text-gray-500 dark:text-gray-400">Location</span>
-        <span className="font-medium text-gray-900 dark:text-gray-100">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-sm">
+        <span className="text-gray-500 dark:text-gray-400 mb-1 sm:mb-0">
+          Location
+        </span>
+        <span className="font-medium text-gray-900 dark:text-gray-100 break-all">
           {customer.location}
         </span>
       </div>
@@ -343,20 +347,8 @@ const OrderCard = ({
               </div>
               <div className="flex items-center gap-3 mt-1.5">
                 <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                  <Box size={12} />
-                  <span>
-                    {order.items.length} item{order.items.length !== 1 && "s"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                   <Calendar size={12} />
                   <span>{formatDate(order.created_at)}</span>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                  <CreditCard size={12} />
-                  <span>
-                    {order.payment_method === "cod" ? "COD" : "Online"}
-                  </span>
                 </div>
               </div>
             </div>
@@ -566,9 +558,8 @@ const Orders = () => {
 
   return (
     <div className="bg-white dark:bg-gray-950 min-h-screen pb-20">
+      <StatusTabs status={status} setStatus={setStatus} />
       <div className="max-w-3xl mx-auto px-4">
-        <StatusTabs status={status} setStatus={setStatus} />
-
         {loading && orders.length === 0 ? (
           <div className="flex justify-center items-center p-8">
             <div className="animate-spin h-8 w-8 rounded-full border-4 border-blue-500 border-t-transparent"></div>
