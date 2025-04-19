@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { MapPin, Navigation } from "lucide-react";
 import AppContext from "../context/AppContext";
 import Modal from "../components/common/Modal";
+import rfpLogo from "../assets/rfp.png";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -50,7 +51,9 @@ const Home = () => {
         setPopularItems(response.data || []);
       } catch (err) {
         console.error("Failed to fetch popular items:", err);
-        setPopularError("Could not load popular items. Please try again later.");
+        setPopularError(
+          "Could not load popular items. Please try again later."
+        );
         setPopularItems([]);
       } finally {
         setIsPopularLoading(false);
@@ -101,7 +104,9 @@ const Home = () => {
           setDetectedLocation(address);
           setManualLocation(address);
         } catch (error) {
-          setLocationError("Could not detect your location. Please try again or enter manually.");
+          setLocationError(
+            "Could not detect your location. Please try again or enter manually."
+          );
         } finally {
           setIsGettingLocation(false);
         }
@@ -109,7 +114,8 @@ const Home = () => {
       (error) => {
         let errorMessage = "Failed to get your location.";
         if (error.code === 1) {
-          errorMessage = "Location access denied. Please enable location access in your browser settings.";
+          errorMessage =
+            "Location access denied. Please enable location access in your browser settings.";
         } else if (error.code === 2) {
           errorMessage = "Location unavailable. Please try again later.";
         } else if (error.code === 3) {
@@ -187,45 +193,48 @@ const Home = () => {
 
   return (
     <div className="bg-gray-50 dark:bg-gray-950 min-h-screen text-gray-800 dark:text-gray-200 pb-16">
-      {/* Header Section */}
-      <div className="fixed flex justify-between items-center w-full p-4 bg-gray-100 dark:bg-gray-900 z-10">
-        <div
-          className="flex items-center w-full gap-2 cursor-pointer"
-          onClick={openLocationModal}
-        >
-          <span className="bg-yellow-400 text-black text-xs p-2 rounded-full">
-            <MapPin size={18} />
-          </span>
-          <span className="mr-2 text-sm truncate text-gray-700 dark:text-gray-300 max-w-[70%]">
-            {userLocation || "Select your location"}
-          </span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              openLocationModal();
-            }}
-            className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 text-xs text-gray-600 dark:text-gray-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors"
-            aria-label="Update location"
+      <header className="sticky top-0 z-30 h-14 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-md border-b border-gray-200 dark:border-gray-800">
+        <div className="max-w-4xl mx-auto h-full px-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 max-w-[70%] sm:max-w-[75%]">
+            <img
+              src={rfpLogo}
+              alt="RFP Logo"
+              className="w-8 h-8 rounded-full object-cover bg-white dark:bg-gray-800 p-0.5 shadow-sm"
+            />
+            <div
+              className="flex items-center gap-2 cursor-pointer truncate"
+              onClick={openLocationModal}
+            >
+              <span className="truncate text-sm text-gray-700 dark:text-gray-300 max-w-[140px] sm:max-w-[200px]">
+                {userLocation || "Select your location"}
+              </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openLocationModal();
+                }}
+                className="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-0.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors"
+              >
+                Change
+              </button>
+            </div>
+          </div>
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center border border-blue-500 dark:border-blue-400 cursor-pointer overflow-hidden"
+            onClick={() => navigate("/profile")}
           >
-            Change
-          </button>
+            <img
+              src="https://img.freepik.com/premium-psd/contact-icon-illustration-isolated_23-2151903357.jpg"
+              alt="Profile"
+              className="w-full h-full object-cover rounded-full"
+            />
+          </div>
         </div>
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center border-1 border-blue-500 dark:border-blue-400 cursor-pointer"
-          onClick={() => navigate("/profile")}
-          aria-label="Open Profile"
-        >
-          <img
-            src="https://img.freepik.com/premium-psd/contact-icon-illustration-isolated_23-2151903357.jpg"
-            alt="Profile"
-            className="rounded-full w-full h-full aspect-square"
-          />
-        </div>
-      </div>
+      </header>
 
       {/* Main Content */}
       <div className="p-4">
-        <div className="pt-20 mb-8">
+        <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
               Today's Specials

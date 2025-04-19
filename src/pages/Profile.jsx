@@ -1,10 +1,8 @@
 import { useContext } from "react";
 import {
   ArrowRight,
-  Settings,
   MessageSquare,
   LogOut,
-  User,
 } from "lucide-react";
 import AppContext from "../context/AppContext";
 import { useNavigate } from "react-router-dom";
@@ -46,8 +44,6 @@ export default function Profile() {
             onClick={() => navigate("/")}
           />
         </div>
-        <h2 className="text-xl font-semibold">My Profile</h2>
-        <div className="w-10"></div>
       </div>
 
       <div className="flex flex-col items-center mt-4 mb-8 relative">

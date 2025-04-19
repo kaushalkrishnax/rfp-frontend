@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { BaggageClaim, Plus, Loader2 } from "lucide-react";
+import { BaggageClaim, Plus } from "lucide-react";
 import { useMenu, MenuProvider } from "../context/MenuContext";
 import AppContext from "../context/AppContext";
 import MenuItemModal from "../components/menu/MenuItemModal";
@@ -221,15 +221,15 @@ const MenuContent = () => {
 
   return (
     <div className="bg-white dark:bg-gray-950 min-h-screen pb-20 relative">
-      <header className="sticky top-0 z-30 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-lg">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
+      <header className="sticky top-0 z-30 h-14 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-md border-b border-gray-200 dark:border-gray-800">
+        <div className="max-w-4xl mx-auto px-4 h-full flex items-center justify-between">
+          <div className="flex items-center space-x-3">
             <img
               src={rfpLogo}
               alt="RFP Logo"
-              className="w-6 h-6 rounded-full object-cover bg-white dark:bg-gray-900 p-0.5"
+              className="w-8 h-8 rounded-full object-cover bg-white dark:bg-gray-800 p-0.5 shadow-sm"
             />
-            <h1 className="text-base sm:text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-yellow-400 tracking-tight">
+            <h1 className="text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-yellow-400">
               MENU
             </h1>
           </div>
@@ -238,7 +238,7 @@ const MenuContent = () => {
             <button
               onClick={() => openCategoryModal()}
               disabled={isBusy}
-              className="bg-yellow-500 px-3 py-1 rounded-full flex items-center shadow-md transition hover:bg-yellow-400 disabled:opacity-60 disabled:cursor-not-allowed text-sm font-medium"
+              className="bg-yellow-500 px-3 py-1.5 rounded-full flex items-center shadow-md transition hover:bg-yellow-400 disabled:opacity-60 disabled:cursor-not-allowed text-sm font-medium"
             >
               <Plus size={16} />
               <span className="ml-1.5">Add Category</span>
@@ -248,15 +248,6 @@ const MenuContent = () => {
       </header>
 
       <main className="max-w-2xl mx-auto px-3 sm:px-4 py-4 relative">
-        {loadingState.initial && (
-          <div className="fixed inset-0 bg-white/60 dark:bg-gray-900/60 flex justify-center items-center z-40 backdrop-blur-sm">
-            <Loader2 size={32} className="animate-spin text-yellow-500" />
-            <span className="ml-3 text-gray-900 dark:text-gray-100">
-              Loading Menu...
-            </span>
-          </div>
-        )}
-
         <MenuCategories registerCategoryRef={registerCategoryRef} />
         {!isAdmin && (
           <button
@@ -310,7 +301,7 @@ const Menu = () => {
 
   const searchParams = new URLSearchParams(location.search);
   const { categoryId, itemId } = Object.fromEntries(searchParams.entries());
-  
+
   if (!rfpFetch) {
     return (
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-gray-900 dark:text-gray-100">

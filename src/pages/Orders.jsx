@@ -1,7 +1,6 @@
 import React, { useContext, useEffect, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  ChevronLeft,
   CheckCircle,
   XCircle,
   Clock,
@@ -68,26 +67,8 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString(undefined, options);
 };
 
-// --- Sub-components ---
-
-const OrdersHeader = ({ navigate, isAdmin }) => (
-  <div className="py-6 flex items-center justify-between">
-    <div className="flex items-center">
-      <button
-        onClick={() => navigate(-1)}
-        className="p-2 rounded-full bg-white dark:bg-gray-900 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
-      >
-        <ChevronLeft size={20} className="text-gray-800 dark:text-gray-200" />
-      </button>
-      <h1 className="text-2xl font-bold ml-3 text-gray-900 dark:text-gray-100">
-        {isAdmin ? "Manage Orders" : "My Orders"}
-      </h1>
-    </div>
-  </div>
-);
-
 const StatusTabs = ({ status, setStatus }) => (
-  <div className="mb-6 overflow-x-auto -mx-4 px-4">
+  <div className="overflow-x-auto sticky top-0 -mx-4 px-4 py-4 mb-4 bg-gray-100 dark:bg-gray-900">
     <div className="flex space-x-1 bg-white dark:bg-gray-900 rounded-xl p-1 shadow-sm border border-gray-200 dark:border-gray-700 overflow-x-auto">
       {["all", "pending", "processing", "delivered", "cancelled"].map((s) => {
         const statusInfo = getStatusInfo(s !== "all" ? s : "pending");
@@ -586,8 +567,6 @@ const Orders = () => {
   return (
     <div className="bg-white dark:bg-gray-950 min-h-screen pb-20">
       <div className="max-w-3xl mx-auto px-4">
-        <OrdersHeader navigate={navigate} isAdmin={isAdmin} />
-        {/* Filter component removed */}
         <StatusTabs status={status} setStatus={setStatus} />
 
         {loading && orders.length === 0 ? (

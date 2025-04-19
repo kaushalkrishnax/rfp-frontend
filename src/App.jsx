@@ -8,6 +8,7 @@ import {
 import AppContext from "./context/AppContext";
 
 import Home from "./pages/Home";
+import AdminHome from "./pages/AdminHome";
 import Menu from "./pages/Menu";
 import Orders from "./pages/Orders";
 import Profile from "./pages/Profile";
@@ -16,7 +17,7 @@ import FinalizeAuth from "./pages/FinalizeAuth";
 import BottomNav from "./layout/BottomNav";
 
 function App() {
-  const { isUserAuthenticated, isAppLoading } = useContext(AppContext);
+  const { isUserAuthenticated, isAppLoading, isAdmin } = useContext(AppContext);
 
   if (isAppLoading) return <LoadingScreen />;
 
@@ -27,7 +28,7 @@ function App() {
       ) : (
         <>
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={isAdmin ? <AdminHome /> : <Home />} />
             <Route path="/menu" element={<Menu />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/profile" element={<Profile />} />
