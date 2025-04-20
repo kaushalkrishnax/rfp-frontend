@@ -35,6 +35,7 @@ export default defineConfig({
     }),
   ],
   server: {
+    host: "app.rfp.com",
     port: 3000,
   },
 });
