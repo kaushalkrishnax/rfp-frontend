@@ -1,16 +1,15 @@
 // firebase.js
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { Capacitor } from "@capacitor/core";
 
 const firebaseConfig = {
-  apiKey: Capacitor.isNativePlatform() ? "AIzaSyBRE_54DwHKy3vKDhyAf8rJ0sbmDB_PQbQ" : "AIzaSyD1xfHJ-rtaBIhiZOTEPEpjOexMxTzLYSs",
+  apiKey: "AIzaSyD1xfHJ-rtaBIhiZOTEPEpjOexMxTzLYSs",
   authDomain: "rfp-app-3cd65.firebaseapp.com",
   projectId: "rfp-app-3cd65",
   storageBucket: "rfp-app-3cd65.firebasestorage.app",
   messagingSenderId: "79090394208",
-  appId: "1:79090394208:web:fcf63bfa980cd8a88c4f05",
-  measurementId: "G-Q3B3K1W69C",
+  appId: "1:79090394208:web:743f8d5de139d4b88c4f05",
+  measurementId: "G-W5RJ0YWM07"
 };
 
 const app = initializeApp(firebaseConfig);
