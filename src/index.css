@@ -159,7 +159,3 @@ svg {
 .animate-pulse {
   animation: pulse 6s ease-in-out infinite;
 }
-
-body {
-  @apply bg-gray-950;
-}

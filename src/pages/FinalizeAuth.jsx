@@ -49,7 +49,7 @@ const FinalizeAuth = () => {
           auth,
           "recaptcha-container",
           {
-            size: "invisible",
+            size: window.innerWidth < 320 ? "compact" : "normal",
             callback: (response) => {
               console.log("reCAPTCHA verified");
             },
@@ -288,9 +288,6 @@ const FinalizeAuth = () => {
             Royal Food Plaza
           </p>
         </div>
-
-        <div id="recaptcha-container"></div>
-
         {error && (
           <div
             className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm text-center"
@@ -329,6 +326,7 @@ const FinalizeAuth = () => {
                   aria-label="Enter your 10-digit Indian phone number"
                 />
               </div>
+              <div id="recaptcha-container" className="mt-5 flex items-center justify-center"></div>
             </div>
 
             <button
