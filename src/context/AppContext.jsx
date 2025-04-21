@@ -1,6 +1,5 @@
 import { createContext, useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
-
 import {
   onAuthStateChanged,
   getIdToken,
@@ -21,7 +20,6 @@ export const AppProvider = ({ children }) => {
   const [userInfo, setUserInfo] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAppLoading, setIsAppLoading] = useState(true);
-
   useEffect(() => {
     const stored = localStorage.getItem("userInfo");
     if (stored) {
@@ -137,11 +135,15 @@ export const AppProvider = ({ children }) => {
   const setupNativeNotifications = async (userData) => {
     try {
       const permResult = await PushNotifications.requestPermissions();
-      if (permResult.receive !== "granted") return;
+      if (permResult.receive !== "granted") {
+        console.warn("Push Notification permission not granted.");
+        return;
+      }
 
       await PushNotifications.register();
 
       PushNotifications.addListener("registration", async (token) => {
+        console.log("Push registration success, token:", token.value);
         await storeFcmToken(userData, token.value);
       });
 
@@ -151,40 +153,17 @@ export const AppProvider = ({ children }) => {
           await LocalNotifications.schedule({
             notifications: [
               {
-                title: notification.data.title || "New Notification",
-                body: notification.data.body || "You have a new message",
+                title: notification.data?.title || "New Notification",
+                body: notification.data?.body || "You have a new message",
                 id: Math.floor(Math.random() * 1000000),
                 data: notification.data,
                 smallIcon: "ic_notification",
-                schedule: { at: new Date(Date.now() + 100) },
+                schedule: { at: new Date(Date.now() + 200) },
               },
             ],
           });
         }
       );
-
-      PushNotifications.addListener(
-        "pushNotificationActionPerformed",
-        (notification) => {
-          const data = notification.notification.data;
-          if (data.click_action === "OPEN_ORDER_DETAIL" && data.order_id) {
-            window.location.href = `/orders?order_id=${data.order_id}&fromNotification=true`;
-          }
-        }
-      );
-
-      const localPermResult = await LocalNotifications.requestPermissions();
-      if (localPermResult.display === "granted") {
-        LocalNotifications.addListener(
-          "localNotificationActionPerformed",
-          (event) => {
-            const data = event.notification.data;
-            if (data.click_action === "OPEN_ORDER_DETAIL" && data.order_id) {
-              window.location.href = `/orders?order_id=${data.order_id}&fromNotification=true`;
-            }
-          }
-        );
-      }
     } catch (err) {
       console.error("Native notification setup error:", err);
     }
