@@ -1,11 +1,17 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: 'com.rfp.app',
-  appName: 'RFP',
-  webDir: 'dist',
+  appId: "com.rfp.app",
+  appName: "RFP",
+  webDir: "dist",
   server: {
-    hostname: 'app.rfp.com',
+    hostname: "app.rfp.com",
+  },
+  plugins: {
+    FirebaseAuthentication: {
+      skipNativeAuth: false,
+      providers: ["phone"],
+    }
   }
 };
 

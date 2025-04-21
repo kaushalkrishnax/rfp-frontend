@@ -1,10 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
-import {
-  getAuth,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  getIdToken,
-} from "firebase/auth";
+import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import rfpLogo from "../assets/rfp.png";
 import AppContext from "../context/AppContext";
 
@@ -17,57 +12,37 @@ const FinalizeAuth = () => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [confirmationResult, setConfirmationResult] = useState(null);
-  const recaptchaInitialized = useRef(false);
+  const [verificationId, setVerificationId] = useState(null);
   const inputRefs = useRef([]);
 
   useEffect(() => {
     const img = new Image();
     img.src = rfpLogo;
-  }, []);
 
-  useEffect(() => {
-    if (!recaptchaInitialized.current) {
-      try {
-        const auth = getAuth();
-        if (!auth) {
-          console.error("Firebase Auth not initialized");
-          setError("Authentication service not ready. Please refresh.");
-          return;
-        }
-
-        const recaptchaContainer = document.getElementById(
-          "recaptcha-container"
-        );
-        if (!recaptchaContainer) {
-          console.error("Recaptcha container not found");
-          setError("Authentication elements not found. Please refresh.");
-          return;
-        }
-
-        window.recaptchaVerifier = new RecaptchaVerifier(
-          auth,
-          "recaptcha-container",
-          {
-            size: window.innerWidth < 320 ? "compact" : "normal",
-            callback: (response) => {
-              console.log("reCAPTCHA verified");
-            },
-            "expired-callback": () => {
-              console.log("reCAPTCHA expired");
-            },
-          }
-        );
-
-        recaptchaInitialized.current = true;
-        window.recaptchaVerifier.render().then((widgetId) => {
-          window.recaptchaWidgetId = widgetId;
-        });
-      } catch (e) {
-        console.error("Error initializing reCAPTCHA:", e);
-        setError("Could not initialize verification. Please refresh.");
+    const phoneCodeSentListener = FirebaseAuthentication.addListener(
+      "phoneCodeSent",
+      (event) => {
+        setVerificationId(event.verificationId);
+        setShowOtpScreen(true);
+        setOtp(["", "", "", "", "", ""]);
+        setTimeout(() => inputRefs.current[0]?.focus(), 100);
+        setIsLoading(false);
       }
-    }
+    );
+
+    const phoneVerificationFailedListener = FirebaseAuthentication.addListener(
+      "phoneVerificationFailed",
+      (error) => {
+        console.error("Phone verification failed:", error);
+        setError(`Verification failed: ${error.message || "Unknown error"}`);
+        setIsLoading(false);
+      }
+    );
+
+    return () => {
+      phoneCodeSentListener.remove();
+      phoneVerificationFailedListener.remove();
+    };
   }, []);
 
   const handlePhoneChange = (e) => {
@@ -110,41 +85,19 @@ const FinalizeAuth = () => {
       return;
     }
 
-    if (!window.recaptchaVerifier) {
-      setError("reCAPTCHA not ready. Please refresh the page.");
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      const auth = getAuth();
-      if (!auth) {
-        throw new Error("Firebase Auth not initialized");
-      }
-
-      const appVerifier = window.recaptchaVerifier;
       const fullPhoneNumber = `+91${phoneNumber}`;
 
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        fullPhoneNumber,
-        appVerifier
-      );
-      setConfirmationResult(confirmation);
-      setShowOtpScreen(true);
-      setOtp(["", "", "", "", "", ""]);
-      setTimeout(() => inputRefs.current[0]?.focus(), 100);
+      await FirebaseAuthentication.signInWithPhoneNumber({
+        phoneNumber: fullPhoneNumber,
+      });
+
+      // Don't set states here, they'll be set in the event listener
     } catch (error) {
       console.error("Error sending OTP:", error);
-      if (error.code === "auth/too-many-requests") {
-        setError("Too many requests. Please try again later.");
-      } else if (error.code === "auth/invalid-phone-number") {
-        setError("Invalid phone number format.");
-      } else {
-        setError("Failed to send OTP. Please check number or try again.");
-      }
-    } finally {
+      setError(`Failed to send OTP: ${error.message || "Unknown error"}`);
       setIsLoading(false);
     }
   };
@@ -159,9 +112,9 @@ const FinalizeAuth = () => {
       return;
     }
 
-    if (!confirmationResult) {
+    if (!verificationId) {
       setError(
-        "OTP confirmation session not found. Please try sending OTP again."
+        "OTP verification session not found. Please try sending OTP again."
       );
       setShowOtpScreen(false);
       setOtp(["", "", "", "", "", ""]);
@@ -172,17 +125,21 @@ const FinalizeAuth = () => {
     setIsLoading(true);
 
     try {
-      const result = await confirmationResult.confirm(otpValue);
-      const user = result.user;
-      console.log("Firebase OTP verification successful:", user);
+      await FirebaseAuthentication.confirmVerificationCode({
+        verificationId,
+        verificationCode: otpValue,
+      });
 
-      const idToken = await getIdToken(user, true);
-      console.log("Obtained Firebase ID Token");
+      const idTokenResult = await FirebaseAuthentication.getIdToken();
+
+      if (!idTokenResult || !idTokenResult.token) {
+        throw new Error("Failed to get authentication token");
+      }
 
       const res = await fetch(`${RFP_API_URL}/auth/finalize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
+        body: JSON.stringify({ idToken: idTokenResult.token }),
       });
 
       const backendResponse = await res.json();
@@ -202,20 +159,20 @@ const FinalizeAuth = () => {
       }
     } catch (error) {
       console.error("Error verifying OTP or finalizing auth:", error);
-      if (error.code === "auth/invalid-verification-code") {
+      if (error.message?.includes("invalid-verification-code")) {
         setError("Invalid OTP code. Please try again.");
         setOtp(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
-      } else if (error.code === "auth/code-expired") {
+      } else if (error.message?.includes("code-expired")) {
         setError("OTP code expired. Please request a new one.");
         setShowOtpScreen(false);
       } else if (
         error instanceof TypeError &&
-        error.message.includes("fetch")
+        error.message?.includes("fetch")
       ) {
         setError("Network error. Could not reach the server.");
       } else {
-        setError("An error occurred during verification. Please try again.");
+        setError(`Verification error: ${error.message || "Unknown error"}`);
       }
     } finally {
       setIsLoading(false);
@@ -225,7 +182,7 @@ const FinalizeAuth = () => {
   const handleChangeNumber = () => {
     setError("");
     setOtp(["", "", "", "", "", ""]);
-    setConfirmationResult(null);
+    setVerificationId(null);
     setShowOtpScreen(false);
   };
 
@@ -236,40 +193,18 @@ const FinalizeAuth = () => {
       return;
     }
 
-    if (!window.recaptchaVerifier) {
-      setError("reCAPTCHA not ready. Please refresh the page.");
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      const auth = getAuth();
-      if (!auth) {
-        throw new Error("Firebase Auth not initialized");
-      }
-
-      const appVerifier = window.recaptchaVerifier;
       const fullPhoneNumber = `+91${phoneNumber}`;
 
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        fullPhoneNumber,
-        appVerifier
-      );
-      setConfirmationResult(confirmation);
-      setOtp(["", "", "", "", "", ""]);
-      setError("New OTP sent successfully.");
-      setTimeout(() => setError(""), 3000);
-      inputRefs.current[0]?.focus();
+      await FirebaseAuthentication.signInWithPhoneNumber({
+        phoneNumber: fullPhoneNumber,
+      });
+
     } catch (error) {
       console.error("Error resending OTP:", error);
-      if (error.code === "auth/too-many-requests") {
-        setError("Too many requests for resend. Please wait.");
-      } else {
-        setError("Failed to resend OTP.");
-      }
-    } finally {
+      setError(`Failed to resend OTP: ${error.message || "Unknown error"}`);
       setIsLoading(false);
     }
   };
@@ -326,7 +261,6 @@ const FinalizeAuth = () => {
                   aria-label="Enter your 10-digit Indian phone number"
                 />
               </div>
-              <div id="recaptcha-container" className="mt-5 flex items-center justify-center"></div>
             </div>
 
             <button

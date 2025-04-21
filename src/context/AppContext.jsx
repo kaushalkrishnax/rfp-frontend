@@ -1,10 +1,17 @@
 import { createContext, useEffect, useState } from "react";
-import { onAuthStateChanged, getIdToken, signOut } from "firebase/auth";
+import { Capacitor } from "@capacitor/core";
+
+import {
+  onAuthStateChanged,
+  getIdToken,
+  signOut as webSignOut,
+} from "firebase/auth";
 import { auth } from "../firebase";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
-import { Capacitor } from "@capacitor/core";
-import { LocalNotifications } from "@capacitor/local-notifications";
+
+import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { PushNotifications } from "@capacitor/push-notifications";
+import { LocalNotifications } from "@capacitor/local-notifications";
 
 const AppContext = createContext();
 const RFP_API_URL = import.meta.env.VITE_RFP_API_URL;
@@ -14,6 +21,7 @@ export const AppProvider = ({ children }) => {
   const [userInfo, setUserInfo] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAppLoading, setIsAppLoading] = useState(true);
+
   useEffect(() => {
     const stored = localStorage.getItem("userInfo");
     if (stored) {
@@ -26,7 +34,9 @@ export const AppProvider = ({ children }) => {
     const MINIMUM_LOAD_TIME = 3000;
     const startTime = Date.now();
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let unsubscribeWeb;
+
+    const handleUser = async (firebaseUser) => {
       const elapsed = Date.now() - startTime;
       const delay = Math.max(0, MINIMUM_LOAD_TIME - elapsed);
 
@@ -48,15 +58,42 @@ export const AppProvider = ({ children }) => {
           } catch (err) {
             console.error("FinalizeAuth Error:", err);
           }
-        } else if (!firebaseUser && isUserAuthenticated) {
+        } else {
           deleteUserInfo();
         }
 
         setIsAppLoading(false);
       }, delay);
-    });
+    };
 
-    return () => unsubscribe();
+    if (Capacitor.isNativePlatform()) {
+      FirebaseAuthentication.addListener("authStateChange", async (event) => {
+        if (event?.user) {
+          const tokenResult = await FirebaseAuthentication.getIdToken();
+          if (tokenResult?.token) {
+            const res = await fetch(`${RFP_API_URL}/auth/finalize`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ idToken: tokenResult.token }),
+            });
+
+            const data = await res.json();
+            if (data?.data) {
+              saveUserInfo(data.data);
+              await setupNotifications(data.data);
+            }
+          }
+        }
+
+        setIsAppLoading(false);
+      });
+    } else {
+      unsubscribeWeb = onAuthStateChanged(auth, handleUser);
+    }
+
+    return () => {
+      if (unsubscribeWeb) unsubscribeWeb();
+    };
   }, []);
 
   const setupNotifications = async (userData) => {
@@ -70,9 +107,7 @@ export const AppProvider = ({ children }) => {
   const setupWebNotifications = async (userData) => {
     try {
       const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        return;
-      }
+      if (permission !== "granted") return;
 
       const messaging = getMessaging();
       const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
@@ -81,14 +116,13 @@ export const AppProvider = ({ children }) => {
       await storeFcmToken(userData, fcmToken);
 
       onMessage(messaging, (payload) => {
-        const notificationTitle = payload.data.title || "New Notification";
-        const notificationOptions = {
-          body: payload.data.body || "You have a new message",
+        const { title = "New Notification", body = "You have a new message" } =
+          payload.data;
+        new Notification(title, {
+          body,
           icon: "/apple-touch-icon.png",
           data: payload.data,
-        };
-
-        new Notification(notificationTitle, notificationOptions);
+        });
       });
     } catch (err) {
       console.error("Web notification setup error:", err);
@@ -98,9 +132,7 @@ export const AppProvider = ({ children }) => {
   const setupNativeNotifications = async (userData) => {
     try {
       const permResult = await PushNotifications.requestPermissions();
-      if (permResult.receive !== "granted") {
-        return;
-      }
+      if (permResult.receive !== "granted") return;
 
       await PushNotifications.register();
 
@@ -110,8 +142,8 @@ export const AppProvider = ({ children }) => {
 
       PushNotifications.addListener(
         "pushNotificationReceived",
-        (notification) => {
-          LocalNotifications.schedule({
+        async (notification) => {
+          await LocalNotifications.schedule({
             notifications: [
               {
                 title: notification.data.title || "New Notification",
@@ -165,12 +197,11 @@ export const AppProvider = ({ children }) => {
       });
 
       const data = await response.json();
-
       if (data?.data) {
         saveUserInfo({ ...userData, fcm_token: token });
       }
     } catch (err) {
-      console.warn("❌ storeFcmToken error:", err);
+      console.warn("storeFcmToken error:", err);
     }
   };
 
@@ -182,7 +213,19 @@ export const AppProvider = ({ children }) => {
   };
 
   const deleteUserInfo = async () => {
-    await signOut(auth);
+    const isNative = Capacitor.isNativePlatform();
+    try {
+      if (isNative) {
+        await FirebaseAuthentication.signOut();
+      } else {
+        if (auth.currentUser) {
+          await webSignOut(auth);
+        }
+      }
+    } catch (e) {
+      console.warn("Sign out failed", e);
+    }
+
     localStorage.removeItem("userInfo");
     setUserInfo(null);
     setIsUserAuthenticated(false);
@@ -219,10 +262,7 @@ export const AppProvider = ({ children }) => {
             const newAccessToken = refreshData?.data?.access_token;
 
             if (refreshRes.ok && newAccessToken) {
-              const newUser = {
-                ...userInfo,
-                access_token: newAccessToken,
-              };
+              const newUser = { ...userInfo, access_token: newAccessToken };
               saveUserInfo(newUser);
 
               return await fetch(`${RFP_API_URL}${endpoint}`, {
