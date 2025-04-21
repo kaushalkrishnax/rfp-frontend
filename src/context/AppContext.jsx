@@ -85,7 +85,12 @@ export const AppProvider = ({ children }) => {
           }
         }
 
-        setIsAppLoading(false);
+        const elapsed = Date.now() - startTime;
+        const delay = Math.max(0, MINIMUM_LOAD_TIME - elapsed);
+
+        setTimeout(() => {
+          setIsAppLoading(false);
+        }, delay);
       });
     } else {
       unsubscribeWeb = onAuthStateChanged(auth, handleUser);
