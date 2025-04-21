@@ -143,7 +143,6 @@ export const AppProvider = ({ children }) => {
       await PushNotifications.register();
 
       PushNotifications.addListener("registration", async (token) => {
-        console.log("Push registration success, token:", token.value);
         await storeFcmToken(userData, token.value);
       });
 

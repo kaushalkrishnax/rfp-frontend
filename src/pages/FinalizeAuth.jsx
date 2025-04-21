@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
+import { Capacitor } from "@capacitor/core";
+import {
+  RecaptchaVerifier,
+  PhoneAuthProvider,
+  signInWithCredential,
+  signInWithPhoneNumber,
+} from "firebase/auth";
+import { auth } from "../firebase.js";
 import rfpLogo from "../assets/rfp.png";
 import AppContext from "../context/AppContext";
 
@@ -13,37 +21,58 @@ const FinalizeAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [verificationId, setVerificationId] = useState(null);
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState(null);
   const inputRefs = useRef([]);
+  const isNative = Capacitor.isNativePlatform();
 
   useEffect(() => {
     const img = new Image();
     img.src = rfpLogo;
 
-    const phoneCodeSentListener = FirebaseAuthentication.addListener(
-      "phoneCodeSent",
-      (event) => {
-        setVerificationId(event.verificationId);
-        setShowOtpScreen(true);
-        setOtp(["", "", "", "", "", ""]);
-        setTimeout(() => inputRefs.current[0]?.focus(), 100);
-        setIsLoading(false);
-      }
-    );
+    if (!isNative) {
+      const verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+        size: window.innerWidth < 320 ? "compact" : "normal",
+        "expired-callback": () => {
+          console.warn("reCAPTCHA expired, reloading...");
+          window.location.reload();
+        },
+        "error-callback": (err) => {
+          console.error("reCAPTCHA error:", err);
+        },
+      });
+      setRecaptchaVerifier(verifier);
+    }
 
-    const phoneVerificationFailedListener = FirebaseAuthentication.addListener(
-      "phoneVerificationFailed",
-      (error) => {
-        console.error("Phone verification failed:", error);
-        setError(`Verification failed: ${error.message || "Unknown error"}`);
-        setIsLoading(false);
-      }
-    );
+    if (isNative) {
+      const phoneCodeSentListener = FirebaseAuthentication.addListener(
+        "phoneCodeSent",
+        (event) => {
+          setVerificationId(event.verificationId);
+          setShowOtpScreen(true);
+          setOtp(["", "", "", "", "", ""]);
+          setTimeout(() => inputRefs.current[0]?.focus(), 100);
+          setIsLoading(false);
+        }
+      );
 
-    return () => {
-      phoneCodeSentListener.remove();
-      phoneVerificationFailedListener.remove();
-    };
-  }, []);
+      const phoneVerificationFailedListener =
+        FirebaseAuthentication.addListener(
+          "phoneVerificationFailed",
+          (error) => {
+            console.error("Phone verification failed:", error);
+            setError(
+              `Verification failed: ${error.message || "Unknown error"}`
+            );
+            setIsLoading(false);
+          }
+        );
+
+      return () => {
+        phoneCodeSentListener.remove();
+        phoneVerificationFailedListener.remove();
+      };
+    }
+  }, [isNative]);
 
   const handlePhoneChange = (e) => {
     const value = e.target.value.replace(/\D/g, "");
@@ -86,15 +115,25 @@ const FinalizeAuth = () => {
     }
 
     setIsLoading(true);
+    const fullPhoneNumber = `+91${phoneNumber}`;
 
     try {
-      const fullPhoneNumber = `+91${phoneNumber}`;
-
-      await FirebaseAuthentication.signInWithPhoneNumber({
-        phoneNumber: fullPhoneNumber,
-      });
-
-      // Don't set states here, they'll be set in the event listener
+      if (isNative) {
+        await FirebaseAuthentication.signInWithPhoneNumber({
+          phoneNumber: fullPhoneNumber,
+        });
+      } else {
+        const confirmationResult = await signInWithPhoneNumber(
+          auth,
+          fullPhoneNumber,
+          recaptchaVerifier
+        );
+        setVerificationId(confirmationResult.verificationId);
+        setShowOtpScreen(true);
+        setOtp(["", "", "", "", "", ""]);
+        setTimeout(() => inputRefs.current[0]?.focus(), 100);
+        setIsLoading(false);
+      }
     } catch (error) {
       console.error("Error sending OTP:", error);
       setError(`Failed to send OTP: ${error.message || "Unknown error"}`);
@@ -125,21 +164,33 @@ const FinalizeAuth = () => {
     setIsLoading(true);
 
     try {
-      await FirebaseAuthentication.confirmVerificationCode({
-        verificationId,
-        verificationCode: otpValue,
-      });
+      let idToken;
 
-      const idTokenResult = await FirebaseAuthentication.getIdToken();
+      if (isNative) {
+        await FirebaseAuthentication.confirmVerificationCode({
+          verificationId,
+          verificationCode: otpValue,
+        });
 
-      if (!idTokenResult || !idTokenResult.token) {
+        const idTokenResult = await FirebaseAuthentication.getIdToken();
+        idToken = idTokenResult.token;
+      } else {
+        const credential = PhoneAuthProvider.credential(
+          verificationId,
+          otpValue
+        );
+        const userCredential = await signInWithCredential(auth, credential);
+        idToken = await userCredential.user.getIdToken();
+      }
+
+      if (!idToken) {
         throw new Error("Failed to get authentication token");
       }
 
       const res = await fetch(`${RFP_API_URL}/auth/finalize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken: idTokenResult.token }),
+        body: JSON.stringify({ idToken }),
       });
 
       const backendResponse = await res.json();
@@ -194,17 +245,37 @@ const FinalizeAuth = () => {
     }
 
     setIsLoading(true);
+    const fullPhoneNumber = `+91${phoneNumber}`;
 
     try {
-      const fullPhoneNumber = `+91${phoneNumber}`;
+      if (isNative) {
+        await FirebaseAuthentication.signInWithPhoneNumber({
+          phoneNumber: fullPhoneNumber,
+        });
+      } else {
+        if (
+          recaptchaVerifier &&
+          typeof recaptchaVerifier.clear === "function"
+        ) {
+          recaptchaVerifier.clear();
+        }
 
-      await FirebaseAuthentication.signInWithPhoneNumber({
-        phoneNumber: fullPhoneNumber,
-      });
+        const newVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+          size: window.innerWidth < 320 ? "compact" : "normal",
+        });
+        setRecaptchaVerifier(newVerifier);
 
+        const confirmationResult = await signInWithPhoneNumber(
+          auth,
+          fullPhoneNumber,
+          newVerifier
+        );
+        setVerificationId(confirmationResult.verificationId);
+      }
     } catch (error) {
       console.error("Error resending OTP:", error);
       setError(`Failed to resend OTP: ${error.message || "Unknown error"}`);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -261,6 +332,12 @@ const FinalizeAuth = () => {
                   aria-label="Enter your 10-digit Indian phone number"
                 />
               </div>
+              {!isNative && (
+                <div
+                  id="recaptcha-container"
+                  className="mt-4 flex justify-center"
+                ></div>
+              )}
             </div>
 
             <button
