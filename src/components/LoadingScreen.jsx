@@ -33,8 +33,7 @@ const LoadingScreen = () => {
       {/* Developer Credits */}
       <div className="absolute bottom-6 flex flex-col items-center opacity-0 animate-welcome">
         <p className="text-sm text-gray-700 dark:text-gray-300 animate-fade mb-6">
-          Developed by <span className="font-semibold">Kaushal</span> &{" "}
-          <span className="font-semibold">Ayush</span>
+          Developed with ❤️ by <span className="font-semibold">Kaushal</span>
         </p>
         <div className="flex space-x-2">
           <div className="w-2 h-2 bg-red-600 dark:bg-red-400 rounded-full animate-bounce1" />

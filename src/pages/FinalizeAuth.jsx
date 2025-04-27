@@ -431,8 +431,7 @@ const FinalizeAuth = () => {
 
         <div className="mt-12 flex flex-col items-center">
           <p className="text-xs text-gray-700 dark:text-gray-300">
-            Developed by <span className="font-semibold">Kaushal</span> &{" "}
-            <span className="font-semibold">Ayush</span>
+            Developed with ❤️ by <span className="font-semibold">Kaushal</span>
           </p>
         </div>
       </div>
