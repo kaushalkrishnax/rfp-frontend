@@ -185,10 +185,10 @@ const CustomerInfo = ({ customer }) => (
     <div className="space-y-3">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-sm">
         <span className="text-gray-500 dark:text-gray-400 mb-1 sm:mb-0">
-          Phone
+          Email
         </span>
         <span className="font-medium text-gray-900 dark:text-gray-100 break-all">
-          {customer.phone}
+          {customer.email}
         </span>
       </div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-sm">
