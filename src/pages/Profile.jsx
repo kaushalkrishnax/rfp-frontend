@@ -1,9 +1,5 @@
 import { useContext } from "react";
-import {
-  ArrowRight,
-  MessageSquare,
-  LogOut,
-} from "lucide-react";
+import { ArrowRight, MessageSquare, LogOut } from "lucide-react";
 import AppContext from "../context/AppContext";
 import { useNavigate } from "react-router-dom";
 
@@ -56,7 +52,7 @@ export default function Profile() {
         </div>
 
         <p className="text-2xl font-bold dark:text-white">
-          {userInfo?.phone || "No phone added"}
+          {userInfo?.email || "No phone added"}
         </p>
       </div>
 

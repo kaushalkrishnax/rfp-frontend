@@ -65,7 +65,7 @@ const Home = () => {
   }, [rfpFetch]);
 
   useEffect(() => {
-    if (userInfo?.location) {
+    if (userInfo?.location && typeof userInfo.location === "string") {
       setUserLocation(userInfo.location);
       setManualLocation(userInfo.location);
     }
@@ -74,7 +74,7 @@ const Home = () => {
   const openLocationModal = () => {
     setLocationError("");
     setIsLocationModalOpen(true);
-    if (userInfo?.location) {
+    if (userInfo?.location && typeof userInfo.location === "string") {
       setManualLocation(userInfo.location);
     }
   };
@@ -303,7 +303,7 @@ const Home = () => {
                       <div className="p-3">
                         <div className="flex justify-between items-start mb-1">
                           <h3 className="font-medium text-gray-900 dark:text-white text-sm">
-                            {item.name}
+                            {typeof item.name === "string" ? item.name : ""}
                           </h3>
                           <div className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs px-1.5 py-0.5 rounded flex items-center">
                             ★
@@ -313,7 +313,9 @@ const Home = () => {
                           </div>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                          {item.category_name}
+                          {typeof item.category_name === "string"
+                            ? item.category_name
+                            : ""}
                         </p>
                         <div className="flex justify-between items-center">
                           <span className="font-bold text-gray-800 dark:text-gray-200">
@@ -387,7 +389,7 @@ const Home = () => {
                     />
                   </div>
                   <span className="text-xs font-medium text-gray-700 dark:text-gray-300 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition duration-200 mt-1">
-                    {item.name}
+                    {typeof item.name === "string" ? item.name : ""}
                   </span>
                 </div>
               ))}
@@ -413,7 +415,7 @@ const Home = () => {
             </button>
             <button
               onClick={saveLocation}
-              disabled={isSavingLocation || !manualLocation.trim()}
+              disabled={isSavingLocation || isGettingLocation}
               className="px-4 py-2 rounded-lg bg-yellow-400 dark:bg-yellow-500 text-black font-medium hover:bg-yellow-500 dark:hover:bg-yellow-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isSavingLocation ? (

@@ -1,196 +1,84 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, { useState, useContext } from "react";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { Capacitor } from "@capacitor/core";
-import {
-  RecaptchaVerifier,
-  PhoneAuthProvider,
-  signInWithCredential,
-  signInWithPhoneNumber,
-} from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import AppContext from "../context/AppContext.jsx";
 import { auth } from "../firebase.js";
 import rfpLogo from "../assets/rfp.png";
-import AppContext from "../context/AppContext";
-
-const RFP_API_URL = import.meta.env.VITE_RFP_API_URL;
+import { RFP_API_URL } from "../constants.js";
 
 const FinalizeAuth = () => {
   const { saveUserInfo } = useContext(AppContext);
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [showOtpScreen, setShowOtpScreen] = useState(false);
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [showPhoneScreen, setShowPhoneScreen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [verificationId, setVerificationId] = useState(null);
-  const [recaptchaVerifier, setRecaptchaVerifier] = useState(null);
-  const inputRefs = useRef([]);
+  const [googleIdToken, setGoogleIdToken] = useState(null);
   const isNative = Capacitor.isNativePlatform();
 
-  useEffect(() => {
-    const img = new Image();
-    img.src = rfpLogo;
-
-    if (!isNative) {
-      const verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-        size: window.innerWidth < 320 ? "compact" : "normal",
-        "expired-callback": () => {
-          console.warn("reCAPTCHA expired, reloading...");
-          window.location.reload();
-        },
-        "error-callback": (err) => {
-          console.error("reCAPTCHA error:", err);
-        },
-      });
-      setRecaptchaVerifier(verifier);
-    }
-
-    if (isNative) {
-      const phoneCodeSentListener = FirebaseAuthentication.addListener(
-        "phoneCodeSent",
-        (event) => {
-          setVerificationId(event.verificationId);
-          setShowOtpScreen(true);
-          setOtp(["", "", "", "", "", ""]);
-          setTimeout(() => inputRefs.current[0]?.focus(), 100);
-          setIsLoading(false);
-        }
-      );
-
-      const phoneVerificationFailedListener =
-        FirebaseAuthentication.addListener(
-          "phoneVerificationFailed",
-          (error) => {
-            console.error("Phone verification failed:", error);
-            setError(
-              `Verification failed: ${error.message || "Unknown error"}`
-            );
-            setIsLoading(false);
-          }
-        );
-
-      return () => {
-        phoneCodeSentListener.remove();
-        phoneVerificationFailedListener.remove();
-      };
-    }
-  }, [isNative]);
-
-  const handlePhoneChange = (e) => {
-    const value = e.target.value.replace(/\D/g, "");
-    if (value.length <= 10) {
-      setPhoneNumber(value);
-      setError("");
-    }
-  };
-
-  const handleOtpChange = (index, value) => {
+  const handleGoogleSignIn = async () => {
     setError("");
-    if (/^\d?$/.test(value)) {
-      const newOtp = [...otp];
-      newOtp[index] = value;
-      setOtp(newOtp);
-
-      if (value && index < 5) {
-        inputRefs.current[index + 1]?.focus();
-      }
-    }
-  };
-
-  const handleOtpKeyDown = (index, e) => {
-    setError("");
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    } else if (e.key === "ArrowLeft" && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    } else if (e.key === "ArrowRight" && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleSendOtp = async (e) => {
-    e.preventDefault();
-    setError("");
-    if (phoneNumber.length !== 10) {
-      setError("Please enter a valid 10-digit phone number");
-      return;
-    }
-
-    setIsLoading(true);
-    const fullPhoneNumber = `+91${phoneNumber}`;
-
-    try {
-      if (isNative) {
-        await FirebaseAuthentication.signInWithPhoneNumber({
-          phoneNumber: fullPhoneNumber,
-        });
-      } else {
-        const confirmationResult = await signInWithPhoneNumber(
-          auth,
-          fullPhoneNumber,
-          recaptchaVerifier
-        );
-        setVerificationId(confirmationResult.verificationId);
-        setShowOtpScreen(true);
-        setOtp(["", "", "", "", "", ""]);
-        setTimeout(() => inputRefs.current[0]?.focus(), 100);
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error("Error sending OTP:", error);
-      setError(`Failed to send OTP: ${error.message || "Unknown error"}`);
-      setIsLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    setError("");
-    const otpValue = otp.join("");
-
-    if (otpValue.length !== 6) {
-      setError("Please enter the complete 6-digit OTP");
-      return;
-    }
-
-    if (!verificationId) {
-      setError(
-        "OTP verification session not found. Please try sending OTP again."
-      );
-      setShowOtpScreen(false);
-      setOtp(["", "", "", "", "", ""]);
-      setPhoneNumber("");
-      return;
-    }
-
     setIsLoading(true);
 
     try {
       let idToken;
 
       if (isNative) {
-        await FirebaseAuthentication.confirmVerificationCode({
-          verificationId,
-          verificationCode: otpValue,
-        });
-
-        const idTokenResult = await FirebaseAuthentication.getIdToken();
-        idToken = idTokenResult.token;
+        await FirebaseAuthentication.signInWithGoogle();
+        const result = await FirebaseAuthentication.getIdToken();
+        idToken = result.token;
       } else {
-        const credential = PhoneAuthProvider.credential(
-          verificationId,
-          otpValue
-        );
-        const userCredential = await signInWithCredential(auth, credential);
-        idToken = await userCredential.user.getIdToken();
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        idToken = await result.user.getIdToken();
       }
 
       if (!idToken) {
-        throw new Error("Failed to get authentication token");
+        throw new Error("Failed to get Google authentication token");
       }
+
+      setGoogleIdToken(idToken);
 
       const res = await fetch(`${RFP_API_URL}/auth/finalize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
+      });
+
+      const backendResponse = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          backendResponse?.message || `Server error (${res.status})`
+        );
+      }
+
+      if (backendResponse?.data?.isSignup) {
+        setShowPhoneScreen(true);
+      } else {
+        await finalizeAuthWithToken(idToken);
+      }
+    } catch (error) {
+      console.error("Error during Google sign-in:", error);
+      setError(`Google sign-in failed: ${error.message || "Unknown error"}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const finalizeAuthWithToken = async (token, phone = null) => {
+    setIsLoading(true);
+
+    try {
+      const requestBody = { idToken: token };
+      if (phone) {
+        requestBody.phoneNumber = phone;
+      }
+
+      const res = await fetch(`${RFP_API_URL}/auth/finalize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
       });
 
       const backendResponse = await res.json();
@@ -209,76 +97,46 @@ const FinalizeAuth = () => {
         );
       }
     } catch (error) {
-      console.error("Error verifying OTP or finalizing auth:", error);
-      if (error.message?.includes("invalid-verification-code")) {
-        setError("Invalid OTP code. Please try again.");
-        setOtp(["", "", "", "", "", ""]);
-        inputRefs.current[0]?.focus();
-      } else if (error.message?.includes("code-expired")) {
-        setError("OTP code expired. Please request a new one.");
-        setShowOtpScreen(false);
-      } else if (
-        error instanceof TypeError &&
-        error.message?.includes("fetch")
-      ) {
-        setError("Network error. Could not reach the server.");
-      } else {
-        setError(`Verification error: ${error.message || "Unknown error"}`);
-      }
+      console.error("Error finalizing authentication:", error);
+      setError(`Authentication error: ${error.message || "Unknown error"}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleChangeNumber = () => {
-    setError("");
-    setOtp(["", "", "", "", "", ""]);
-    setVerificationId(null);
-    setShowOtpScreen(false);
+  const handlePhoneChange = (e) => {
+    const value = e.target.value.replace(/\D/g, "");
+    if (value.length <= 10) {
+      setPhoneNumber(value);
+      setError("");
+    }
   };
 
-  const handleResendOtp = async () => {
-    setError("");
+  const handleSubmitPhone = async (e) => {
+    e.preventDefault();
+
     if (phoneNumber.length !== 10) {
-      setError("Invalid phone number associated with this attempt.");
+      setError("Please enter a valid 10-digit phone number");
       return;
     }
 
-    setIsLoading(true);
-    const fullPhoneNumber = `+91${phoneNumber}`;
-
-    try {
-      if (isNative) {
-        await FirebaseAuthentication.signInWithPhoneNumber({
-          phoneNumber: fullPhoneNumber,
-        });
-      } else {
-        if (
-          recaptchaVerifier &&
-          typeof recaptchaVerifier.clear === "function"
-        ) {
-          recaptchaVerifier.clear();
-        }
-
-        const newVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-          size: window.innerWidth < 320 ? "compact" : "normal",
-        });
-        setRecaptchaVerifier(newVerifier);
-
-        const confirmationResult = await signInWithPhoneNumber(
-          auth,
-          fullPhoneNumber,
-          newVerifier
-        );
-        setVerificationId(confirmationResult.verificationId);
-      }
-    } catch (error) {
-      console.error("Error resending OTP:", error);
-      setError(`Failed to resend OTP: ${error.message || "Unknown error"}`);
-    } finally {
-      setIsLoading(false);
-    }
+    const formattedPhone = `+91${phoneNumber}`;
+    await finalizeAuthWithToken(googleIdToken, formattedPhone);
   };
+
+  const handleBackToSignIn = () => {
+    setShowPhoneScreen(false);
+    setPhoneNumber("");
+    setError("");
+  };
+
+  const LoadingIndicator = () => (
+    <div className="flex space-x-2">
+      <div className="w-2 h-2 bg-white rounded-full animate-bounce1" />
+      <div className="w-2 h-2 bg-white rounded-full animate-bounce2" />
+      <div className="w-2 h-2 bg-white rounded-full animate-bounce3" />
+    </div>
+  );
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900 text-black dark:text-white overflow-hidden transition-colors duration-500 relative">
@@ -303,9 +161,50 @@ const FinalizeAuth = () => {
           </div>
         )}
 
-        {!showOtpScreen ? (
-          <form onSubmit={handleSendOtp} className="space-y-6 animate-fade">
+        {!showPhoneScreen ? (
+          <div className="space-y-6 animate-fade">
             <h2 className="text-xl font-semibold text-center">Sign In</h2>
+
+            <button
+              className="w-full bg-white dark:bg-gray-800 text-gray-700 dark:text-white h-12 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 dark:border-gray-600"
+              onClick={handleGoogleSignIn}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <LoadingIndicator />
+              ) : (
+                <>
+                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    />
+                  </svg>
+                  Continue with Google
+                </>
+              )}
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmitPhone} className="space-y-6 animate-fade">
+            <h2 className="text-xl font-semibold text-center">
+              Complete Your Profile
+            </h2>
+            <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+              Please provide your phone number to continue
+            </p>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
               <label
@@ -332,100 +231,26 @@ const FinalizeAuth = () => {
                   aria-label="Enter your 10-digit Indian phone number"
                 />
               </div>
-              {!isNative && (
-                <div
-                  id="recaptcha-container"
-                  className="mt-4 flex justify-center"
-                ></div>
-              )}
             </div>
 
-            <button
-              className="w-full bg-red-600 dark:bg-red-500 text-white h-12 rounded-lg flex items-center justify-center hover:bg-red-700 dark:hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              type="submit"
-              disabled={isLoading || phoneNumber.length !== 10}
-            >
-              {isLoading ? (
-                <div className="flex space-x-2">
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce1" />
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce2" />
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce3" />
-                </div>
-              ) : (
-                "Send OTP"
-              )}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleVerifyOtp} className="space-y-6 animate-fade">
-            <h2 className="text-xl font-semibold text-center">
-              Verify Your Number
-            </h2>
-            <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-              We've sent a 6-digit code to +91 {phoneNumber}
-            </p>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-              <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">
-                Enter 6-digit OTP
-              </label>
-              <div className="flex gap-2 justify-center sm:justify-between">
-                {[0, 1, 2, 3, 4, 5].map((index) => (
-                  <input
-                    key={index}
-                    id={`otp-${index}`}
-                    type="text"
-                    inputMode="numeric"
-                    pattern="\d{1}"
-                    ref={(el) => (inputRefs.current[index] = el)}
-                    className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition"
-                    value={otp[index]}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                    maxLength={1}
-                    required
-                    aria-required="true"
-                    aria-label={`OTP digit ${index + 1}`}
-                    autoFocus={index === 0}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-between text-sm">
+            <div className="flex flex-col space-y-3">
               <button
-                className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition"
-                onClick={handleChangeNumber}
+                className="w-full bg-red-600 dark:bg-red-500 text-white h-12 rounded-lg flex items-center justify-center hover:bg-red-700 dark:hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                type="submit"
+                disabled={isLoading || phoneNumber.length !== 10}
+              >
+                {isLoading ? <LoadingIndicator /> : "Continue"}
+              </button>
+
+              <button
+                className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300 transition text-sm"
+                onClick={handleBackToSignIn}
                 type="button"
                 disabled={isLoading}
               >
-                Change Number
-              </button>
-              <button
-                className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition disabled:opacity-50"
-                onClick={handleResendOtp}
-                type="button"
-                disabled={isLoading}
-              >
-                Resend OTP
+                Back to Sign In
               </button>
             </div>
-
-            <button
-              className="w-full bg-red-600 dark:bg-red-500 text-white h-12 rounded-lg flex items-center justify-center hover:bg-red-700 dark:hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              type="submit"
-              disabled={isLoading || otp.join("").length !== 6}
-            >
-              {isLoading ? (
-                <div className="flex space-x-2">
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce1" />
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce2" />
-                  <div className="w-2 h-2 bg-white rounded-full animate-bounce3" />
-                </div>
-              ) : (
-                "Verify & Continue"
-              )}
-            </button>
           </form>
         )}
 

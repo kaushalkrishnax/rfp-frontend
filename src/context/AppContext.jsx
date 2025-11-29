@@ -7,13 +7,12 @@ import {
 } from "firebase/auth";
 import { auth } from "../firebase";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
-
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { LocalNotifications } from "@capacitor/local-notifications";
+import { RFP_API_URL } from "../constants.js";
 
 const AppContext = createContext();
-const RFP_API_URL = import.meta.env.VITE_RFP_API_URL;
 
 export const AppProvider = ({ children }) => {
   const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
@@ -277,6 +276,7 @@ export const AppProvider = ({ children }) => {
       value={{
         isUserAuthenticated,
         isAdmin,
+        setIsAdmin,
         userInfo,
         isAppLoading,
         saveUserInfo,

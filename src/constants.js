@@ -1,0 +1,1 @@
+export const RFP_API_URL = "https://rfp-backend-73t3.onrender.com/api/v1"
